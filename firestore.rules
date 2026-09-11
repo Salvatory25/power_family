@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserData().role == 'super_admin' && getUserData().status == 'active';
+    }
+    
+    function isBranchManager() {
+      return isAuthenticated() && getUserData().role == 'branch_manager' && getUserData().status == 'active';
+    }
+    
+    function isSalesAgent() {
+      return isAuthenticated() && getUserData().role == 'sales_agent' && getUserData().status == 'active';
+    }
+    
+    function isSurveyor() {
+      return isAuthenticated() && getUserData().role == 'surveyor' && getUserData().status == 'active';
+    }
+    
+    function isBranchMember(branchId) {
+      return isAuthenticated() && getUserData().branchId == branchId && getUserData().status == 'active';
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.role == 'sales_agent' && request.resource.data.status == 'pending';
+      allow update: if isSuperAdmin() || (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status']));
+      allow delete: if isSuperAdmin();
+    }
+
+    // Branches Collection
+    match /branches/{branchId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    // Properties Collection
+    match /properties/{propertyId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isSuperAdmin() || (isBranchManager() && isBranchMember(request.resource.data.branchId)) || isSalesAgent();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Customers Collection
+    match /customers/{customerId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isSuperAdmin() || isBranchManager() || isSalesAgent();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Leads Collection
+    match /leads/{leadId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isSuperAdmin() || isBranchManager() || isSalesAgent();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Sales Collection
+    match /sales/{saleId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isSuperAdmin() || isBranchManager() || isSalesAgent();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Survey Tasks Collection
+    match /survey_tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isSuperAdmin() || isBranchManager() || isSurveyor();
+      allow delete: if isSuperAdmin();
+    }
+
+    // SMS Logs Collection
+    match /sms_logs/{logId} {
+      allow read: if isSuperAdmin() || isBranchManager();
+      allow create: if isAuthenticated();
+    }
+
+    // Activities Log Collection
+    match /activities/{activityId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+  }
+}
