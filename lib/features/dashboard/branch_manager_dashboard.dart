@@ -7,6 +7,7 @@ import '../../repositories/seed_data.dart';
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../auth/auth_controller.dart';
+import 'dashboard_providers.dart';
 
 class BranchManagerDashboard extends ConsumerWidget {
   const BranchManagerDashboard({super.key});
@@ -25,14 +26,19 @@ class BranchManagerDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value;
-    final branchId = user?.branchId ?? 'branch_1';
-    final branchName = user?.branchName ?? 'Dar es Salaam HQ';
+    final branchId = user?.branchId ?? 'branch_dar';
 
-    final branchProps = SeedData.properties.where((p) => p.branchId == branchId).toList();
-    final branchStaff = SeedData.users.where((u) => u.branchId == branchId).toList();
-    final branchLeads = SeedData.leads.where((l) => l.branchId == branchId).toList();
-    final branchSales = SeedData.sales.where((s) => s.branchId == branchId).toList();
-    final branchSurveys = SeedData.surveyTasks.where((st) => st.branchId == branchId).toList();
+    final allProps = ref.watch(propertiesProvider).value ?? [];
+    final allStaff = ref.watch(usersProvider).value ?? [];
+    final allLeads = ref.watch(leadsProvider).value ?? [];
+    final allSales = ref.watch(salesProvider).value ?? [];
+    final allSurveys = ref.watch(surveysProvider).value ?? [];
+
+    final branchProps = allProps.where((p) => p.branchId == branchId || branchId == 'branch_dar').toList();
+    final branchStaff = allStaff.where((u) => u.branchId == branchId || branchId == 'branch_dar').toList();
+    final branchLeads = allLeads.where((l) => l.branchId == branchId || branchId == 'branch_dar').toList();
+    final branchSales = allSales.where((s) => s.branchId == branchId || branchId == 'branch_dar').toList();
+    final branchSurveys = allSurveys.where((st) => st.branchId == branchId || branchId == 'branch_dar').toList();
 
     final availableCount = branchProps.where((p) => p.status == AppConstants.propertyAvailable).length;
     final soldCount = branchProps.where((p) => p.status == AppConstants.propertySold).length;

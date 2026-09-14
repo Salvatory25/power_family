@@ -78,16 +78,17 @@ class PropertyModel {
     this.vehicleCondition,
     this.latitude,
     this.longitude,
-    required this.images,
-    required this.documents,
-    required this.status,
-    required this.branchId,
+    this.images = const [],
+    this.documents = const [],
+    this.status = 'AVAILABLE',
+    this.branchId = 'branch_dar',
     this.assignedAgentId,
     this.assignedSurveyorId,
-    required this.createdBy,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+    this.createdBy = 'system',
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  })  : createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   factory PropertyModel.fromMap(Map<String, dynamic> map, String id) {
     return PropertyModel(

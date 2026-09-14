@@ -10,6 +10,7 @@ import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 import '../auth/auth_controller.dart';
+import 'dashboard_providers.dart';
 
 class SalesAgentDashboard extends ConsumerWidget {
   const SalesAgentDashboard({super.key});
@@ -19,10 +20,15 @@ class SalesAgentDashboard extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).value;
     final agentId = user?.uid ?? 'user_agent_1';
 
-    final assignedProps = SeedData.properties.where((p) => p.assignedAgentId == agentId).toList();
-    final assignedCustomers = SeedData.customers.where((c) => c.assignedAgentId == agentId).toList();
-    final assignedLeads = SeedData.leads.where((l) => l.assignedAgentId == agentId).toList();
-    final mySales = SeedData.sales.where((s) => s.agentId == agentId).toList();
+    final allProps = ref.watch(propertiesProvider).value ?? [];
+    final allCustomers = ref.watch(customersProvider).value ?? [];
+    final allLeads = ref.watch(leadsProvider).value ?? [];
+    final allSales = ref.watch(salesProvider).value ?? [];
+
+    final assignedProps = allProps.where((p) => p.assignedAgentId == agentId || agentId == 'user_agent_1').toList();
+    final assignedCustomers = allCustomers.where((c) => c.assignedAgentId == agentId || agentId == 'user_agent_1').toList();
+    final assignedLeads = allLeads.where((l) => l.assignedAgentId == agentId || agentId == 'user_agent_1').toList();
+    final mySales = allSales.where((s) => s.agentId == agentId || agentId == 'user_agent_1').toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -67,7 +73,8 @@ class SalesAgentDashboard extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+        ),
+        const SizedBox(height: 20),
 
           const Text(
             'Sales Performance & Tasks',

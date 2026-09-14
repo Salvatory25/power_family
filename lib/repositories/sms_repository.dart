@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sms_log_model.dart';
 import 'seed_data.dart';
 
 class SMSRepository {
-  FirebaseFirestore? get _firestore {
+  SupabaseClient? get _supabase {
     try {
-      return FirebaseFirestore.instance;
+      return Supabase.instance.client;
     } catch (_) {
       return null;
     }
@@ -14,39 +14,61 @@ class SMSRepository {
   Future<List<SMSLogModel>> getSMSLogs({String? branchId, String? userId}) async {
     List<SMSLogModel> list = [];
     try {
-      final store = _firestore;
-      if (store != null) {
-        Query query = store.collection('sms_logs');
+      final supabase = _supabase;
+      if (supabase != null) {
+        var query = supabase.from('sms_logs').select();
         if (branchId != null && branchId.isNotEmpty) {
-          query = query.where('branchId', isEqualTo: branchId);
+          query = query.eq('branch_id', branchId);
         }
         if (userId != null && userId.isNotEmpty) {
-          query = query.where('sentBy', isEqualTo: userId);
+          query = query.eq('sent_by', userId);
         }
-        final snapshot = await query.get();
-        if (snapshot.docs.isNotEmpty) {
-          list = snapshot.docs
-              .map((doc) => SMSLogModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-              .toList();
+        final response = await query;
+        if (response != null && (response as List).isNotEmpty) {
+          final List<SMSLogModel> mappedList = [];
+          for (final rawItem in (response as List)) {
+            final map = rawItem as Map<String, dynamic>;
+            mappedList.add(SMSLogModel(
+              id: (map['id'] ?? '').toString(),
+              recipientId: (map['recipient_phone'] ?? '').toString(),
+              phoneNumber: (map['recipient_phone'] ?? '').toString(),
+              message: (map['message_content'] ?? '').toString(),
+              sentBy: (map['sent_by'] ?? 'system').toString(),
+              branchId: (map['branch_id'] ?? 'branch_dar').toString(),
+              status: (map['delivery_status'] ?? 'SENT').toString(),
+              createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
+            ));
+          }
+          list = mappedList;
         }
       }
     } catch (_) {}
 
-    if (list.isEmpty) {
-      list = List.from(SeedData.smsLogs);
-      if (branchId != null && branchId.isNotEmpty) {
-        list = list.where((s) => s.branchId == branchId).toList();
-      }
-    }
     return list;
   }
 
   Future<SMSLogModel> logSMS(SMSLogModel log) async {
     try {
-      final store = _firestore;
-      if (store != null) {
-        final docRef = await store.collection('sms_logs').add(log.toMap());
-        final newLog = SMSLogModel.fromMap(log.toMap(), docRef.id);
+      final supabase = _supabase;
+      if (supabase != null) {
+        final inserted = await supabase.from('sms_logs').insert({
+          'recipient_phone': log.phoneNumber,
+          'message_content': log.message,
+          'sent_by': log.sentBy,
+          'branch_id': log.branchId.isNotEmpty ? log.branchId : 'branch_dar',
+          'delivery_status': log.status.toUpperCase(),
+        }).select().single();
+
+        final newLog = SMSLogModel(
+          id: inserted['id'],
+          recipientId: log.recipientId,
+          phoneNumber: log.phoneNumber,
+          message: log.message,
+          sentBy: log.sentBy,
+          branchId: log.branchId,
+          status: log.status,
+          createdAt: DateTime.now(),
+        );
         SeedData.smsLogs.add(newLog);
         return newLog;
       }

@@ -362,7 +362,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   Widget _roleChip(String label, String email) {

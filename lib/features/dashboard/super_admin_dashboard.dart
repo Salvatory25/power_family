@@ -8,6 +8,7 @@ import '../../repositories/seed_data.dart';
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../auth/auth_controller.dart';
+import 'dashboard_providers.dart';
 
 class SuperAdminDashboard extends ConsumerWidget {
   const SuperAdminDashboard({super.key});
@@ -26,13 +27,13 @@ class SuperAdminDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value;
-    final properties = SeedData.properties;
-    final branches = SeedData.branches;
-    final users = SeedData.users;
-    final customers = SeedData.customers;
-    final leads = SeedData.leads;
-    final sales = SeedData.sales;
-    final activities = SeedData.activities;
+    final properties = ref.watch(propertiesProvider).value ?? [];
+    final users = ref.watch(usersProvider).value ?? [];
+    final customers = ref.watch(customersProvider).value ?? [];
+    final leads = ref.watch(leadsProvider).value ?? [];
+    final sales = ref.watch(salesProvider).value ?? [];
+    final activities = ref.watch(activitiesProvider).value ?? [];
+    final branches = ref.watch(branchesProvider).value ?? [];
 
     final availableProps = properties.where((p) => p.status == AppConstants.propertyAvailable).length;
     final soldProps = properties.where((p) => p.status == AppConstants.propertySold).length;

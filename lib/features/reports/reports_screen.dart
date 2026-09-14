@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
-import '../../repositories/seed_data.dart';
-
 import '../../widgets/app_logo.dart';
+import '../dashboard/dashboard_providers.dart';
 
-class ReportsScreen extends StatelessWidget {
+class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final properties = SeedData.properties;
-    final sales = SeedData.sales;
-    final branches = SeedData.branches;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final properties = ref.watch(propertiesProvider).value ?? [];
+    final sales = ref.watch(salesProvider).value ?? [];
+    final branches = ref.watch(branchesProvider).value ?? [];
 
     final totalSalesVal = sales.fold<double>(0, (sum, s) => sum + s.amount);
     final kiwanjaCount = properties.where((p) => p.type == 'kiwanja').length;

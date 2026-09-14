@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/constants/app_constants.dart';
@@ -9,9 +9,16 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    await Firebase.initializeApp();
+    const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://lwrfjgnlepgsmsqzntvj.supabase.co');
+    const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_iRT1-Fbk4WnASkcsWuHXhw_VgpFCjCy');
+
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+    );
+    debugPrint('Supabase initialized successfully.');
   } catch (e) {
-    debugPrint('Firebase init fallback: $e');
+    debugPrint('Supabase initialization fallback: $e');
   }
 
   runApp(

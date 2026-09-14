@@ -7,6 +7,7 @@ class UserModel {
   final String phone;
   final String role; // super_admin, branch_manager, sales_agent, surveyor
   final String? branchId;
+  final String? branchName;
   final String? photoUrl;
   final String status; // active, pending, suspended, disabled
   final DateTime createdAt;
@@ -20,6 +21,7 @@ class UserModel {
     required this.phone,
     required this.role,
     this.branchId,
+    this.branchName,
     this.photoUrl,
     required this.status,
     required this.createdAt,
@@ -35,6 +37,7 @@ class UserModel {
       phone: map['phone'] ?? '',
       role: map['role'] ?? 'sales_agent',
       branchId: map['branchId'],
+      branchName: map['branchName'],
       photoUrl: map['photoUrl'],
       status: map['status'] ?? 'pending',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -51,6 +54,7 @@ class UserModel {
       'phone': phone,
       'role': role,
       'branchId': branchId,
+      'branchName': branchName,
       'photoUrl': photoUrl,
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -65,6 +69,7 @@ class UserModel {
     String? phone,
     String? role,
     String? branchId,
+    String? branchName,
     String? photoUrl,
     String? status,
     DateTime? updatedAt,
@@ -77,6 +82,7 @@ class UserModel {
       phone: phone ?? this.phone,
       role: role ?? this.role,
       branchId: branchId ?? this.branchId,
+      branchName: branchName ?? this.branchName,
       photoUrl: photoUrl ?? this.photoUrl,
       status: status ?? this.status,
       createdAt: createdAt,

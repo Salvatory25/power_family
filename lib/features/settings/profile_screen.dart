@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../repositories/seed_data.dart';
+import '../../models/branch_model.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 import '../auth/auth_controller.dart';
+import '../dashboard/dashboard_providers.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -14,9 +15,20 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value;
-    final branch = SeedData.branches.firstWhere(
+    final branches = ref.watch(branchesProvider).value ?? [];
+    final branch = branches.firstWhere(
       (b) => b.id == user?.branchId,
-      orElse: () => SeedData.branches[0],
+      orElse: () => BranchModel(
+        id: '',
+        name: user?.branchId ?? 'Main HQ',
+        code: 'HQ',
+        location: '',
+        phone: '',
+        email: '',
+        status: 'active',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
     );
 
     return Scaffold(

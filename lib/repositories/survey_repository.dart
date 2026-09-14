@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/survey_task_model.dart';
 import 'seed_data.dart';
 
 class SurveyRepository {
-  FirebaseFirestore? get _firestore {
+  SupabaseClient? get _supabase {
     try {
-      return FirebaseFirestore.instance;
+      return Supabase.instance.client;
     } catch (_) {
       return null;
     }
@@ -14,42 +14,65 @@ class SurveyRepository {
   Future<List<SurveyTaskModel>> getSurveyTasks({String? branchId, String? surveyorId}) async {
     List<SurveyTaskModel> list = [];
     try {
-      final store = _firestore;
-      if (store != null) {
-        Query query = store.collection('survey_tasks');
+      final supabase = _supabase;
+      if (supabase != null) {
+        var query = supabase.from('land_processing_stages').select();
         if (branchId != null && branchId.isNotEmpty) {
-          query = query.where('branchId', isEqualTo: branchId);
+          query = query.eq('branch_id', branchId);
         }
         if (surveyorId != null && surveyorId.isNotEmpty) {
-          query = query.where('surveyorId', isEqualTo: surveyorId);
+          query = query.eq('assigned_surveyor_id', surveyorId);
         }
-        final snapshot = await query.get();
-        if (snapshot.docs.isNotEmpty) {
-          list = snapshot.docs
-              .map((doc) => SurveyTaskModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-              .toList();
+        final response = await query;
+        if (response != null && (response as List).isNotEmpty) {
+          final List<SurveyTaskModel> mappedList = [];
+          for (final rawItem in (response as List)) {
+            final map = rawItem as Map<String, dynamic>;
+            mappedList.add(SurveyTaskModel(
+              id: (map['id'] ?? '').toString(),
+              propertyId: (map['plot_id'] ?? '').toString(),
+              surveyorId: (map['assigned_surveyor_id'] ?? '').toString(),
+              branchId: (map['branch_id'] ?? 'branch_dar').toString(),
+              status: (map['stage_status'] ?? 'IN_PROGRESS').toString(),
+              deadline: map['deadline'] != null ? DateTime.tryParse(map['deadline'].toString()) ?? DateTime.now().add(const Duration(days: 14)) : DateTime.now().add(const Duration(days: 14)),
+              notes: (map['notes'] ?? '').toString(),
+              documents: (map['documents'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+              createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
+              updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) ?? DateTime.now() : DateTime.now(),
+            ));
+          }
+          list = mappedList;
         }
       }
     } catch (_) {}
 
-    if (list.isEmpty) {
-      list = List.from(SeedData.surveyTasks);
-      if (branchId != null && branchId.isNotEmpty) {
-        list = list.where((t) => t.branchId == branchId).toList();
-      }
-      if (surveyorId != null && surveyorId.isNotEmpty) {
-        list = list.where((t) => t.surveyorId == surveyorId).toList();
-      }
-    }
     return list;
   }
 
   Future<SurveyTaskModel> createSurveyTask(SurveyTaskModel task) async {
     try {
-      final store = _firestore;
-      if (store != null) {
-        final docRef = await store.collection('survey_tasks').add(task.toMap());
-        final newTask = SurveyTaskModel.fromMap(task.toMap(), docRef.id);
+      final supabase = _supabase;
+      if (supabase != null) {
+        final inserted = await supabase.from('land_processing_stages').insert({
+          'plot_id': task.propertyId,
+          'assigned_surveyor_id': task.surveyorId,
+          'branch_id': task.branchId.isNotEmpty ? task.branchId : 'branch_dar',
+          'stage_status': task.status,
+          'notes': task.notes,
+        }).select().single();
+
+        final newTask = SurveyTaskModel(
+          id: inserted['id'],
+          propertyId: task.propertyId,
+          surveyorId: task.surveyorId,
+          branchId: task.branchId,
+          status: task.status,
+          deadline: task.deadline,
+          notes: task.notes,
+          documents: task.documents,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
         SeedData.surveyTasks.add(newTask);
         return newTask;
       }
@@ -63,13 +86,13 @@ class SurveyRepository {
 
   Future<void> updateSurveyTaskStatus(String taskId, String newStatus, String notes) async {
     try {
-      final store = _firestore;
-      if (store != null) {
-        await store.collection('survey_tasks').doc(taskId).update({
-          'status': newStatus,
+      final supabase = _supabase;
+      if (supabase != null) {
+        await supabase.from('land_processing_stages').update({
+          'stage_status': newStatus,
           'notes': notes,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', taskId);
       }
     } catch (_) {}
     final idx = SeedData.surveyTasks.indexWhere((t) => t.id == taskId);

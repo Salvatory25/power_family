@@ -3,13 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/user_model.dart';
+import '../../models/branch_model.dart';
 import '../../repositories/user_repository.dart';
-import '../../repositories/seed_data.dart';
+import '../../repositories/branch_repository.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
+import '../../widgets/confirm_dialog.dart';
+import '../dashboard/dashboard_providers.dart';
 
 final userRepositoryProvider = Provider((ref) => UserRepository());
+final branchRepositoryProvider = Provider((ref) => BranchRepository());
 
 class UserListScreen extends ConsumerStatefulWidget {
   const UserListScreen({super.key});
@@ -20,32 +24,33 @@ class UserListScreen extends ConsumerStatefulWidget {
 
 class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<UserModel> _allUsers = [];
-  bool _isLoading = true;
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadUsers();
-  }
-
-  Future<void> _loadUsers() async {
-    setState(() => _isLoading = true);
-    final repo = ref.read(userRepositoryProvider);
-    final list = await repo.getUsers();
-    setState(() {
-      _allUsers = list;
-      _isLoading = false;
+    _searchCtrl.addListener(() {
+      setState(() {
+        _searchQuery = _searchCtrl.text.trim().toLowerCase();
+      });
     });
   }
 
-  void _showAddStaffModal() {
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showAddStaffModal(List<BranchModel> branches) {
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     String selectedRole = AppConstants.roleSalesAgent;
-    String selectedBranch = SeedData.branches.isNotEmpty ? SeedData.branches[0].id : 'b1';
+    String selectedBranch = branches.isNotEmpty ? branches[0].id : '';
     String selectedStatus = AppConstants.statusActive;
 
     showModalBottomSheet(
@@ -54,6 +59,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          final validBranchValue = branches.any((b) => b.id == selectedBranch)
+              ? selectedBranch
+              : (branches.isNotEmpty ? branches[0].id : null);
+
           return Padding(
             padding: EdgeInsets.only(
               left: 20,
@@ -98,12 +107,12 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: selectedBranch,
+                    value: validBranchValue,
                     decoration: const InputDecoration(filled: true),
-                    items: SeedData.branches.map((b) {
+                    items: branches.map((b) {
                       return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
                     }).toList(),
-                    onChanged: (val) => setModalState(() => selectedBranch = val!),
+                    onChanged: (val) => setModalState(() => selectedBranch = val ?? ''),
                   ),
                   const SizedBox(height: 14),
 
@@ -145,13 +154,15 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                       final repo = ref.read(userRepositoryProvider);
                       await repo.createUser(newStaff);
 
+                      ref.invalidate(usersProvider);
+                      ref.invalidate(branchesProvider);
+
                       if (context.mounted) {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Staff account created for ${newStaff.fullName}')),
                         );
                       }
-                      _loadUsers();
                     },
                   ),
                 ],
@@ -163,9 +174,12 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
     );
   }
 
-  void _showRoleAssignmentModal(UserModel user) {
+  void _showEditUserModal(UserModel user, List<BranchModel> branches) {
+    final nameCtrl = TextEditingController(text: user.fullName);
+    final emailCtrl = TextEditingController(text: user.email);
+    final phoneCtrl = TextEditingController(text: user.phone);
     String selectedRole = user.role;
-    String? selectedBranch = user.branchId ?? SeedData.branches[0].id;
+    String selectedBranch = (user.branchId != null && user.branchId!.isNotEmpty) ? user.branchId! : (branches.isNotEmpty ? branches[0].id : '');
     String selectedStatus = user.status;
 
     showModalBottomSheet(
@@ -174,69 +188,110 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          final validBranchValue = branches.any((b) => b.id == selectedBranch)
+              ? selectedBranch
+              : (branches.isNotEmpty ? branches[0].id : null);
+
           return Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Manage User: ${user.fullName}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text('Email: ${user.email} • Phone: ${user.phone}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                const SizedBox(height: 16),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Edit Staff: ${user.fullName}',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  AppTextField(label: 'Full Name', hint: 'Full Name', controller: nameCtrl),
+                  const SizedBox(height: 12),
+                  AppTextField(label: 'Email Address', hint: 'Email', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
+                  const SizedBox(height: 12),
+                  AppTextField(label: 'Phone Number', hint: 'Phone', controller: phoneCtrl, keyboardType: TextInputType.phone),
+                  const SizedBox(height: 14),
 
-                const Text('Account Status:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  value: selectedStatus,
-                  decoration: const InputDecoration(filled: true),
-                  items: const [
-                    DropdownMenuItem(value: AppConstants.statusActive, child: Text('Active (Approved)')),
-                    DropdownMenuItem(value: AppConstants.statusPending, child: Text('Pending Approval')),
-                    DropdownMenuItem(value: AppConstants.statusSuspended, child: Text('Suspended')),
-                    DropdownMenuItem(value: AppConstants.statusDisabled, child: Text('Disabled')),
-                  ],
-                  onChanged: (val) => setModalState(() => selectedStatus = val!),
-                ),
-                const SizedBox(height: 14),
+                  const Text('Account Status:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    decoration: const InputDecoration(filled: true),
+                    items: const [
+                      DropdownMenuItem(value: AppConstants.statusActive, child: Text('Active (Approved)')),
+                      DropdownMenuItem(value: AppConstants.statusPending, child: Text('Pending Approval')),
+                      DropdownMenuItem(value: AppConstants.statusSuspended, child: Text('Suspended')),
+                      DropdownMenuItem(value: AppConstants.statusDisabled, child: Text('Disabled')),
+                    ],
+                    onChanged: (val) => setModalState(() => selectedStatus = val!),
+                  ),
+                  const SizedBox(height: 14),
 
-                const Text('Assign System Role:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  value: selectedRole,
-                  decoration: const InputDecoration(filled: true),
-                  items: AppConstants.allRoles.map((r) {
-                    return DropdownMenuItem(value: r, child: Text(AppConstants.getRoleLabel(r)));
-                  }).toList(),
-                  onChanged: (val) => setModalState(() => selectedRole = val!),
-                ),
-                const SizedBox(height: 14),
+                  const Text('Assign System Role:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedRole,
+                    decoration: const InputDecoration(filled: true),
+                    items: AppConstants.allRoles.map((r) {
+                      return DropdownMenuItem(value: r, child: Text(AppConstants.getRoleLabel(r)));
+                    }).toList(),
+                    onChanged: (val) => setModalState(() => selectedRole = val!),
+                  ),
+                  const SizedBox(height: 14),
 
-                const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  value: selectedBranch,
-                  decoration: const InputDecoration(filled: true),
-                  items: SeedData.branches.map((b) {
-                    return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
-                  }).toList(),
-                  onChanged: (val) => setModalState(() => selectedBranch = val),
-                ),
-                const SizedBox(height: 24),
+                  const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: validBranchValue,
+                    decoration: const InputDecoration(filled: true),
+                    items: branches.map((b) {
+                      return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
+                    }).toList(),
+                    onChanged: (val) => setModalState(() => selectedBranch = val ?? ''),
+                  ),
+                  const SizedBox(height: 24),
 
-                AppButton(
-                  text: 'Save Permissions & Status',
-                  onPressed: () async {
-                    final repo = ref.read(userRepositoryProvider);
-                    await repo.updateUserStatus(user.uid, selectedStatus);
-                    await repo.updateUserRoleAndBranch(user.uid, selectedRole, selectedBranch);
-                    Navigator.pop(ctx);
-                    _loadUsers();
-                  },
-                ),
-              ],
+                  AppButton(
+                    text: 'Update Staff Account',
+                    onPressed: () async {
+                      final updated = user.copyWith(
+                        fullName: nameCtrl.text.trim(),
+                        email: emailCtrl.text.trim(),
+                        phone: phoneCtrl.text.trim(),
+                        role: selectedRole,
+                        branchId: selectedBranch,
+                        status: selectedStatus,
+                        updatedAt: DateTime.now(),
+                      );
+                      final repo = ref.read(userRepositoryProvider);
+                      await repo.updateUser(updated);
+
+                      ref.invalidate(usersProvider);
+                      ref.invalidate(branchesProvider);
+
+                      if (context.mounted) {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Updated user: ${updated.fullName}')),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -244,10 +299,31 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
     );
   }
 
+  Future<void> _confirmDeleteUser(UserModel user) async {
+    final confirm = await ConfirmDialog.show(
+      context,
+      title: 'Delete Staff Member?',
+      message: 'Are you sure you want to delete ${user.fullName} (${user.email})? This action cannot be undone.',
+      isDestructive: true,
+    );
+
+    if (confirm == true) {
+      final repo = ref.read(userRepositoryProvider);
+      await repo.deleteUser(user.uid);
+      ref.invalidate(usersProvider);
+      ref.invalidate(branchesProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Staff member ${user.fullName} deleted.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final pendingUsers = _allUsers.where((u) => u.status == AppConstants.statusPending).toList();
-    final activeUsers = _allUsers.where((u) => u.status != AppConstants.statusPending).toList();
+    final usersAsync = ref.watch(usersProvider);
+    final branches = ref.watch(branchesProvider).value ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -256,7 +332,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
           IconButton(
             icon: const Icon(Icons.person_add),
             tooltip: 'Add Staff Member',
-            onPressed: _showAddStaffModal,
+            onPressed: () => _showAddStaffModal(branches),
           ),
         ],
         bottom: TabBar(
@@ -264,32 +340,79 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
           indicatorColor: AppColors.accent,
           labelColor: Colors.white,
           unselectedLabelColor: AppColors.textMuted,
-          tabs: [
-            Tab(text: 'Pending (${pendingUsers.length})'),
-            Tab(text: 'All Staff (${activeUsers.length})'),
+          tabs: const [
+            Tab(text: 'Pending Approvals'),
+            Tab(text: 'All Organization Staff'),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddStaffModal,
+        onPressed: () => _showAddStaffModal(branches),
         icon: const Icon(Icons.add),
         label: const Text('Add Staff'),
         backgroundColor: AppColors.primary,
       ),
 
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildUserList(pendingUsers, isPendingTab: true),
-                _buildUserList(activeUsers, isPendingTab: false),
-              ],
+      body: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Search staff by name, email, role, or phone...',
+                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => _searchCtrl.clear(),
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+              ),
             ),
+          ),
+
+          Expanded(
+            child: usersAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Center(child: Text('Error loading users: $err')),
+              data: (users) {
+                final filteredUsers = users.where((u) {
+                  if (_searchQuery.isEmpty) return true;
+                  final matchName = u.fullName.toLowerCase().contains(_searchQuery);
+                  final matchEmail = u.email.toLowerCase().contains(_searchQuery);
+                  final matchPhone = u.phone.toLowerCase().contains(_searchQuery);
+                  final matchRole = AppConstants.getRoleLabel(u.role).toLowerCase().contains(_searchQuery);
+                  return matchName || matchEmail || matchPhone || matchRole;
+                }).toList();
+
+                final pendingUsers = filteredUsers.where((u) => u.status == AppConstants.statusPending || u.status == 'pending').toList();
+                final activeUsers = filteredUsers.where((u) => u.status != AppConstants.statusPending && u.status != 'pending').toList();
+
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildUserList(pendingUsers, branches: branches, isPendingTab: true),
+                    _buildUserList(activeUsers, branches: branches, isPendingTab: false),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildUserList(List<UserModel> users, {required bool isPendingTab}) {
+  Widget _buildUserList(List<UserModel> users, {required List<BranchModel> branches, required bool isPendingTab}) {
     if (users.isEmpty) {
       return Center(
         child: Text(
@@ -305,33 +428,57 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final u = users[index];
-        final branch = SeedData.branches.firstWhere((b) => b.id == u.branchId, orElse: () => SeedData.branches[0]);
+        final String userBranchId = u.branchId ?? '';
+        final branchMatch = branches.firstWhere(
+          (b) => b.id == userBranchId,
+          orElse: () => BranchModel(id: '', name: userBranchId.isEmpty ? 'Main HQ' : userBranchId, code: '', location: '', phone: '', email: '', status: 'active', createdAt: DateTime.now(), updatedAt: DateTime.now()),
+        );
+        final branchName = branchMatch.name;
 
         return Card(
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withOpacity(0.12),
-              child: Text(
-                u.fullName.isEmpty ? 'U' : u.fullName.substring(0, 1).toUpperCase(),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
-              ),
-            ),
-            title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            subtitle: Text(
-              'Role: ${AppConstants.getRoleLabel(u.role)}\nBranch: ${branch.name} • ${u.phone}',
-              style: const TextStyle(fontSize: 12),
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                StatusBadge(status: u.status),
-                const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: () => _showRoleAssignmentModal(u),
-                  child: const Text('Manage', style: TextStyle(fontSize: 11, color: AppColors.accent, fontWeight: FontWeight.bold)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primary.withOpacity(0.12),
+                child: Text(
+                  u.fullName.isEmpty ? 'U' : u.fullName.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                 ),
-              ],
+              ),
+              title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              subtitle: Text(
+                'Role: ${AppConstants.getRoleLabel(u.role)}\nBranch: $branchName • ${u.email}',
+                style: const TextStyle(fontSize: 12),
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  StatusBadge(status: u.status),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () => _showEditUserModal(u, branches),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Text('Edit', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () => _confirmDeleteUser(u),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Text('Delete', style: TextStyle(fontSize: 11, color: AppColors.statusSold, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -339,3 +486,4 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
     );
   }
 }
+

@@ -8,6 +8,7 @@ import '../../repositories/seed_data.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../dashboard/dashboard_providers.dart';
 
 final branchRepositoryProvider = Provider((ref) => BranchRepository());
 
@@ -19,25 +20,6 @@ class BranchListScreen extends ConsumerStatefulWidget {
 }
 
 class _BranchListScreenState extends ConsumerState<BranchListScreen> {
-  List<BranchModel> _branches = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBranches();
-  }
-
-  Future<void> _loadBranches() async {
-    setState(() => _isLoading = true);
-    final repo = ref.read(branchRepositoryProvider);
-    final list = await repo.getBranches();
-    setState(() {
-      _branches = list;
-      _isLoading = false;
-    });
-  }
-
   void _showBranchForm([BranchModel? branch]) {
     final nameCtrl = TextEditingController(text: branch?.name ?? '');
     final codeCtrl = TextEditingController(text: branch?.code ?? '');
@@ -107,8 +89,13 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
                     );
                     await repo.updateBranch(updated);
                   }
-                  Navigator.pop(ctx);
-                  _loadBranches();
+                  ref.invalidate(branchesProvider);
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(branch == null ? 'Branch created successfully.' : 'Branch updated successfully.')),
+                    );
+                  }
                 },
               ),
             ],
@@ -120,6 +107,10 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final branchesAsync = ref.watch(branchesProvider);
+    final users = ref.watch(usersProvider).value ?? [];
+    final properties = ref.watch(propertiesProvider).value ?? [];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Branch Management'),
@@ -130,92 +121,113 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _branches.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final b = _branches[index];
-                final staffCount = SeedData.users.where((u) => u.branchId == b.id).length;
-                final propCount = SeedData.properties.where((p) => p.branchId == b.id).length;
-
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              b.name,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: b.status == 'active' ? AppColors.statusAvailable.withOpacity(0.12) : AppColors.statusSold.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                b.status.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: b.status == 'active' ? AppColors.statusAvailable : AppColors.statusSold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text('Code: ${b.code} • ${b.location}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        const SizedBox(height: 4),
-                        Text('Phone: ${b.phone} | Email: ${b.email}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        const Divider(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('$staffCount Staff Members • $propCount Properties', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
-                                  onPressed: () => _showBranchForm(b),
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    b.status == 'active' ? Icons.block : Icons.check_circle,
-                                    size: 18,
-                                    color: b.status == 'active' ? AppColors.statusSold : AppColors.statusAvailable,
-                                  ),
-                                  onPressed: () async {
-                                    final confirm = await ConfirmDialog.show(
-                                      context,
-                                      title: b.status == 'active' ? 'Deactivate Branch?' : 'Activate Branch?',
-                                      message: 'Are you sure you want to change the status of ${b.name}?',
-                                      isDestructive: b.status == 'active',
-                                    );
-                                    if (confirm == true) {
-                                      final repo = ref.read(branchRepositoryProvider);
-                                      await repo.updateBranch(b.copyWith(status: b.status == 'active' ? 'inactive' : 'active'));
-                                      _loadBranches();
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+      body: branchesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Error loading branches: $err')),
+        data: (branches) {
+          if (branches.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('No company branches found.', style: TextStyle(color: AppColors.textSecondary)),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => _showBranchForm(),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create First Branch'),
                   ),
-                );
-              },
-            ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: branches.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final b = branches[index];
+              final staffCount = users.where((u) => u.branchId == b.id).length;
+              final propCount = properties.where((p) => p.branchId == b.id).length;
+
+              return Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            b.name,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: b.status == 'active' ? AppColors.statusAvailable.withOpacity(0.12) : AppColors.statusSold.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              b.status.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: b.status == 'active' ? AppColors.statusAvailable : AppColors.statusSold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text('Code: ${b.code} • ${b.location}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      const SizedBox(height: 4),
+                      Text('Phone: ${b.phone} | Email: ${b.email}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      const Divider(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('$staffCount Staff Members • $propCount Properties', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
+                                onPressed: () => _showBranchForm(b),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  b.status == 'active' ? Icons.block : Icons.check_circle,
+                                  size: 18,
+                                  color: b.status == 'active' ? AppColors.statusSold : AppColors.statusAvailable,
+                                ),
+                                onPressed: () async {
+                                  final confirm = await ConfirmDialog.show(
+                                    context,
+                                    title: b.status == 'active' ? 'Deactivate Branch?' : 'Activate Branch?',
+                                    message: 'Are you sure you want to change the status of ${b.name}?',
+                                    isDestructive: b.status == 'active',
+                                  );
+                                  if (confirm == true) {
+                                    final repo = ref.read(branchRepositoryProvider);
+                                    await repo.updateBranch(b.copyWith(status: b.status == 'active' ? 'inactive' : 'active'));
+                                    ref.invalidate(branchesProvider);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

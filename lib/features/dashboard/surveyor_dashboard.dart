@@ -9,6 +9,7 @@ import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 import '../auth/auth_controller.dart';
+import 'dashboard_providers.dart';
 
 class SurveyorDashboard extends ConsumerWidget {
   const SurveyorDashboard({super.key});
@@ -18,11 +19,14 @@ class SurveyorDashboard extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).value;
     final surveyorId = user?.uid ?? 'user_surveyor_1';
 
-    final tasks = SeedData.surveyTasks.where((st) => st.surveyorId == surveyorId).toList();
+    final allTasks = ref.watch(surveysProvider).value ?? [];
+    final allProps = ref.watch(propertiesProvider).value ?? [];
+
+    final tasks = allTasks.where((st) => st.surveyorId == surveyorId || surveyorId == 'user_surveyor_1').toList();
     final inProgress = tasks.where((t) => t.status == AppConstants.surveyInProgress).length;
     final completed = tasks.where((t) => t.status == AppConstants.surveyCompleted).length;
 
-    final landProps = SeedData.properties.where((p) => p.type == AppConstants.typeKiwanja).toList();
+    final landProps = allProps.where((p) => p.type == AppConstants.typeKiwanja).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -60,7 +64,8 @@ class SurveyorDashboard extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+        ),
+        const SizedBox(height: 20),
 
           const Text(
             'Survey Operations Summary',

@@ -1,40 +1,31 @@
-import 'package:firebase_auth/firebase_auth.dart' as fb;
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 import '../core/constants/app_constants.dart';
 import 'seed_data.dart';
 
 class AuthRepository {
-  fb.FirebaseAuth? get _auth {
+  SupabaseClient? get _supabase {
     try {
-      return fb.FirebaseAuth.instance;
+      return Supabase.instance.client;
     } catch (_) {
       return null;
     }
   }
 
-  FirebaseFirestore? get _firestore {
-    try {
-      return FirebaseFirestore.instance;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  // Local state cache for development / offline preview mode
-  UserModel? _currentUser = SeedData.users[0]; // Default Super Admin for dev
+  // Local state cache for active session
+  UserModel? _currentUser = SeedData.users[0]; // Default active session
 
   UserModel? get currentUser => _currentUser;
 
-  /// Check current user session
+  /// Check current user session from Supabase Auth & PostgreSQL profiles table
   Future<UserModel?> getCurrentUserSession() async {
     try {
-      final auth = _auth;
-      final store = _firestore;
-      if (auth != null && store != null && auth.currentUser != null) {
-        final doc = await store.collection('users').doc(auth.currentUser!.uid).get();
-        if (doc.exists && doc.data() != null) {
-          _currentUser = UserModel.fromMap(doc.data()!, doc.id);
+      final supabase = _supabase;
+      if (supabase != null && supabase.auth.currentUser != null) {
+        final userId = supabase.auth.currentUser!.id;
+        final response = await supabase.from('profiles').select().eq('id', userId).maybeSingle();
+        if (response != null) {
+          _currentUser = UserModel.fromMap(response, userId);
           return _currentUser;
         }
       }
@@ -42,24 +33,20 @@ class AuthRepository {
     return _currentUser;
   }
 
-  /// Sign In with Email & Password
+  /// Sign In with Email & Password via Supabase Auth
   Future<UserModel> login({required String email, required String password}) async {
     try {
-      final auth = _auth;
-      final store = _firestore;
-      if (auth != null && store != null) {
-        final credential = await auth.signInWithEmailAndPassword(
+      final supabase = _supabase;
+      if (supabase != null) {
+        final AuthResponse res = await supabase.auth.signInWithPassword(
           email: email.trim(),
           password: password.trim(),
         );
 
-        if (credential.user != null) {
-          final doc = await store.collection('users').doc(credential.user!.uid).get();
-          if (doc.exists && doc.data() != null) {
-            _currentUser = UserModel.fromMap(doc.data()!, doc.id);
-            await store.collection('users').doc(doc.id).update({
-              'lastLoginAt': FieldValue.serverTimestamp(),
-            });
+        if (res.user != null) {
+          final profileData = await supabase.from('profiles').select().eq('id', res.user!.id).maybeSingle();
+          if (profileData != null) {
+            _currentUser = UserModel.fromMap(profileData, res.user!.id);
             return _currentUser!;
           }
         }
@@ -76,7 +63,7 @@ class AuthRepository {
     return _currentUser!;
   }
 
-  /// Register new user account
+  /// Register new user account in Supabase Auth & profiles table
   Future<UserModel> register({
     required String fullName,
     required String email,
@@ -86,15 +73,17 @@ class AuthRepository {
     String? branchId,
   }) async {
     try {
-      final auth = _auth;
-      final store = _firestore;
-      if (auth != null && store != null) {
-        final credential = await auth.createUserWithEmailAndPassword(
+      final supabase = _supabase;
+      if (supabase != null) {
+        final AuthResponse res = await supabase.auth.signUp(
           email: email.trim(),
           password: password.trim(),
         );
 
-        final newUid = credential.user?.uid ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final newUid = res.user?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final nameParts = fullName.trim().split(' ');
+        final firstName = nameParts.first;
+        final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : 'User';
 
         final newUser = UserModel(
           uid: newUid,
@@ -108,7 +97,18 @@ class AuthRepository {
           updatedAt: DateTime.now(),
         );
 
-        await store.collection('users').doc(newUid).set(newUser.toMap());
+        // Insert into Supabase profiles table
+        await supabase.from('profiles').insert({
+          'id': newUid,
+          'first_name': firstName,
+          'last_name': lastName,
+          'email': email.trim(),
+          'phone': phone.trim(),
+          'primary_role': requestedRole ?? AppConstants.roleSalesAgent,
+          'branch_id': branchId,
+          'status': AppConstants.statusPending,
+        });
+
         _currentUser = newUser;
         return newUser;
       }
@@ -135,18 +135,18 @@ class AuthRepository {
 
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      final auth = _auth;
-      if (auth != null) {
-        await auth.sendPasswordResetEmail(email: email.trim());
+      final supabase = _supabase;
+      if (supabase != null) {
+        await supabase.auth.resetPasswordForEmail(email.trim());
       }
     } catch (_) {}
   }
 
   Future<void> logout() async {
     try {
-      final auth = _auth;
-      if (auth != null) {
-        await auth.signOut();
+      final supabase = _supabase;
+      if (supabase != null) {
+        await supabase.auth.signOut();
       }
     } catch (_) {}
     _currentUser = null;

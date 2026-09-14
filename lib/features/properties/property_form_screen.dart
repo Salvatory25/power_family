@@ -40,7 +40,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   final _vehicleYearCtrl = TextEditingController(text: '2021');
   final _vehicleRegCtrl = TextEditingController(text: 'T 992 EFG');
 
-  String _selectedBranch = SeedData.branches[0].id;
+  String _selectedBranch = 'branch_dar';
   String _selectedStatus = AppConstants.propertyAvailable;
   List<String> _sampleImages = [
     'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80',
@@ -231,9 +231,10 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                   DropdownButtonFormField<String>(
                     value: _selectedBranch,
                     decoration: const InputDecoration(filled: true),
-                    items: SeedData.branches.map((b) {
-                      return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
-                    }).toList(),
+                    items: const [
+                      DropdownMenuItem(value: 'branch_dar', child: Text('Dar es Salaam HQ (PF-DAR)')),
+                      DropdownMenuItem(value: 'branch_arusha', child: Text('Arusha Branch (PF-ARS)')),
+                    ],
                     onChanged: (val) => setState(() => _selectedBranch = val!),
                   ),
                   const SizedBox(height: 14),

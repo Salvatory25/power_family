@@ -22,7 +22,7 @@ void main() {
       expect(AppConstants.getRoleLabel(AppConstants.roleSuperAdmin), equals('Super Admin'));
       expect(AppConstants.getRoleLabel(AppConstants.roleBranchManager), equals('Branch Manager'));
       expect(AppConstants.getRoleLabel(AppConstants.roleSalesAgent), equals('Sales Agent'));
-      expect(AppConstants.getRoleLabel(AppConstants.roleSurveyor), equals('Surveyor'));
+      expect(AppConstants.getRoleLabel(AppConstants.roleSurveyor), equals('Surveyor / Land Officer'));
     });
 
     test('Seed dataset integrity', () {

@@ -1,12 +1,56 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/property_model.dart';
-import 'seed_data.dart';
 
 class PropertyRepository {
-  FirebaseFirestore? get _firestore {
+  SupabaseClient? get _supabase {
     try {
-      return FirebaseFirestore.instance;
+      return Supabase.instance.client;
     } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _resolveBranchUuid(SupabaseClient supabase, String? requestedId) async {
+    try {
+      if (requestedId != null && requestedId.length == 36 && requestedId.contains('-')) {
+        return requestedId;
+      }
+      final res = await supabase.from('branches').select('id').limit(1);
+      if (res != null && (res as List).isNotEmpty) {
+        return res.first['id'].toString();
+      }
+      final inserted = await supabase.from('branches').insert({
+        'name': 'Dar es Salaam HQ',
+        'code': 'PF-DAR',
+        'region': 'Dar es Salaam',
+        'district': 'Kinondoni',
+        'phone': '+255 712 000 111',
+        'email': 'dar@powerfamily.co.tz',
+      }).select().single();
+      return inserted['id'].toString();
+    } catch (e) {
+      print('Error resolving branch UUID: $e');
+      return null;
+    }
+  }
+
+  Future<String?> _resolveProjectUuid(SupabaseClient supabase, String branchUuid) async {
+    try {
+      final res = await supabase.from('projects').select('id').limit(1);
+      if (res != null && (res as List).isNotEmpty) {
+        return res.first['id'].toString();
+      }
+      final inserted = await supabase.from('projects').insert({
+        'branch_id': branchUuid,
+        'project_code': 'PRJ-PF-001',
+        'name': 'Power Family Main Project',
+        'region': 'Dar es Salaam',
+        'district': 'Kigamboni',
+        'total_area_sqm': 50000.0,
+      }).select().single();
+      return inserted['id'].toString();
+    } catch (e) {
+      print('Error resolving project UUID: $e');
       return null;
     }
   }
@@ -19,38 +63,60 @@ class PropertyRepository {
   }) async {
     List<PropertyModel> list = [];
     try {
-      final store = _firestore;
-      if (store != null) {
-        Query query = store.collection('properties');
-        if (branchId != null && branchId.isNotEmpty) {
-          query = query.where('branchId', isEqualTo: branchId);
-        }
-        if (type != null && type.isNotEmpty && type != 'all') {
-          query = query.where('type', isEqualTo: type);
+      final supabase = _supabase;
+      if (supabase != null) {
+        var query = supabase.from('plots').select();
+        if (branchId != null && branchId.isNotEmpty && branchId.length == 36) {
+          query = query.eq('branch_id', branchId);
         }
         if (status != null && status.isNotEmpty && status != 'all') {
-          query = query.where('status', isEqualTo: status);
+          query = query.eq('availability_status', status.toUpperCase());
         }
-        final snapshot = await query.get();
-        if (snapshot.docs.isNotEmpty) {
-          list = snapshot.docs
-              .map((doc) => PropertyModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-              .toList();
+        final response = await query;
+        if (response != null && (response as List).isNotEmpty) {
+          final List<PropertyModel> mappedList = [];
+          for (final rawItem in (response as List)) {
+            final map = rawItem as Map<String, dynamic>;
+            mappedList.add(PropertyModel(
+              id: (map['id'] ?? map['plot_id'] ?? '').toString(),
+              propertyCode: (map['plot_id'] ?? 'PFI-KW-001').toString(),
+              title: 'Plot ${map['plot_number'] ?? '001'} (${map['block_name'] ?? 'Block A'})',
+              type: (map['plot_type'] ?? 'KIWANJA').toString(),
+              description: (map['location_description'] ?? 'Surveyed plot in ${map['district'] ?? 'Dar es Salaam'}').toString(),
+              price: (map['list_price'] as num?)?.toDouble() ?? 15000000.0,
+              location: '${map['district'] ?? 'District'}, ${map['region'] ?? 'Region'}',
+              region: (map['region'] ?? 'Dar es Salaam').toString(),
+              district: (map['district'] ?? 'Kigamboni').toString(),
+              ward: map['ward']?.toString(),
+              street: map['village_street']?.toString(),
+              size: '${map['area_sqm'] ?? 500} SQM',
+              plotNumber: map['plot_number']?.toString(),
+              blockNumber: map['block_name']?.toString(),
+              landUse: map['land_use']?.toString(),
+              surveyStatus: map['survey_status']?.toString(),
+              registrationStatus: map['title_status']?.toString(),
+              images: (map['images'] as List?)?.map((e) => e.toString()).toList() ?? const ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'],
+              documents: (map['documents'] as List?)?.map((e) => e.toString()).toList() ?? const ['Title_Deed_Kigamboni.pdf'],
+              status: (map['availability_status'] ?? 'AVAILABLE').toString(),
+              branchId: (map['branch_id'] ?? '').toString(),
+              assignedAgentId: map['assigned_sales_agent_id']?.toString(),
+              createdBy: (map['created_by'] ?? 'system').toString(),
+              createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
+              updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) ?? DateTime.now() : DateTime.now(),
+            ));
+          }
+          list = mappedList;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      print('Error loading properties: $e');
+    }
 
-    if (list.isEmpty) {
-      list = List.from(SeedData.properties);
-      if (branchId != null && branchId.isNotEmpty) {
-        list = list.where((p) => p.branchId == branchId).toList();
-      }
-      if (type != null && type.isNotEmpty && type != 'all') {
-        list = list.where((p) => p.type.toLowerCase() == type.toLowerCase()).toList();
-      }
-      if (status != null && status.isNotEmpty && status != 'all') {
-        list = list.where((p) => p.status.toLowerCase() == status.toLowerCase()).toList();
-      }
+    if (type != null && type.isNotEmpty && type != 'all') {
+      list = list.where((p) => p.type.toLowerCase() == type.toLowerCase()).toList();
+    }
+    if (status != null && status.isNotEmpty && status != 'all') {
+      list = list.where((p) => p.status.toLowerCase() == status.toLowerCase()).toList();
     }
 
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
@@ -69,72 +135,75 @@ class PropertyRepository {
 
   Future<PropertyModel> createProperty(PropertyModel property) async {
     try {
-      final store = _firestore;
-      if (store != null) {
-        final docRef = await store.collection('properties').add(property.toMap());
-        final newProperty = PropertyModel.fromMap(property.toMap(), docRef.id);
-        SeedData.properties.add(newProperty);
-        return newProperty;
-      }
-    } catch (_) {}
+      final supabase = _supabase;
+      if (supabase != null) {
+        final branchUuid = await _resolveBranchUuid(supabase, property.branchId);
+        if (branchUuid == null) throw Exception('Branch UUID resolution failed');
+        final projectUuid = await _resolveProjectUuid(supabase, branchUuid);
+        if (projectUuid == null) throw Exception('Project UUID resolution failed');
 
-    final newId = 'prop_${DateTime.now().millisecondsSinceEpoch}';
-    final newProperty = PropertyModel.fromMap(property.toMap(), newId);
-    SeedData.properties.add(newProperty);
-    return newProperty;
+        final inserted = await supabase.from('plots').insert({
+          'plot_id': property.propertyCode,
+          'plot_number': property.plotNumber ?? '001',
+          'block_name': property.blockNumber ?? 'Block A',
+          'project_id': projectUuid,
+          'branch_id': branchUuid,
+          'region': property.region.isNotEmpty ? property.region : 'Dar es Salaam',
+          'district': property.district.isNotEmpty ? property.district : 'Kigamboni',
+          'ward': property.ward,
+          'village_street': property.street,
+          'location_description': property.description,
+          'area_sqm': double.tryParse(property.size?.replaceAll(RegExp(r'[^0-9.]'), '') ?? '') ?? 500.0,
+          'list_price': property.price,
+          'availability_status': property.status.toUpperCase(),
+        }).select().single();
+
+        return PropertyModel(
+          id: inserted['id'].toString(),
+          propertyCode: (inserted['plot_id'] ?? property.propertyCode).toString(),
+          title: property.title,
+          type: property.type,
+          description: property.description,
+          price: property.price,
+          location: property.location,
+          region: property.region,
+          district: property.district,
+          ward: property.ward,
+          street: property.street,
+          size: property.size,
+          plotNumber: property.plotNumber,
+          blockNumber: property.blockNumber,
+          landUse: property.landUse,
+          surveyStatus: property.surveyStatus,
+          registrationStatus: property.registrationStatus,
+          images: property.images.isNotEmpty ? property.images : const ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80'],
+          documents: property.documents,
+          status: property.status,
+          branchId: branchUuid,
+          assignedAgentId: property.assignedAgentId,
+          createdBy: property.createdBy,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      }
+    } catch (e) {
+      print('Error creating property in Supabase: $e');
+    }
+
+    return property;
   }
 
   Future<void> updatePropertyStatus(String propertyId, String newStatus) async {
     try {
-      final store = _firestore;
-      if (store != null) {
-        await store.collection('properties').doc(propertyId).update({
-          'status': newStatus,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      final supabase = _supabase;
+      if (supabase != null) {
+        await supabase.from('plots').update({
+          'availability_status': newStatus.toUpperCase(),
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', propertyId);
       }
-    } catch (_) {}
-    final idx = SeedData.properties.indexWhere((p) => p.id == propertyId);
-    if (idx != -1) {
-      final old = SeedData.properties[idx];
-      SeedData.properties[idx] = PropertyModel(
-        id: old.id,
-        propertyCode: old.propertyCode,
-        title: old.title,
-        type: old.type,
-        description: old.description,
-        price: old.price,
-        location: old.location,
-        region: old.region,
-        district: old.district,
-        ward: old.ward,
-        street: old.street,
-        size: old.size,
-        plotNumber: old.plotNumber,
-        blockNumber: old.blockNumber,
-        landUse: old.landUse,
-        surveyStatus: old.surveyStatus,
-        registrationStatus: old.registrationStatus,
-        bedrooms: old.bedrooms,
-        bathrooms: old.bathrooms,
-        vehicleMake: old.vehicleMake,
-        vehicleModel: old.vehicleModel,
-        vehicleYear: old.vehicleYear,
-        vehicleRegistration: old.vehicleRegistration,
-        vehicleMileage: old.vehicleMileage,
-        vehicleCondition: old.vehicleCondition,
-        latitude: old.latitude,
-        longitude: old.longitude,
-        images: old.images,
-        documents: old.documents,
-        status: newStatus,
-        branchId: old.branchId,
-        assignedAgentId: old.assignedAgentId,
-        assignedSurveyorId: old.assignedSurveyorId,
-        createdBy: old.createdBy,
-        createdAt: old.createdAt,
-        updatedAt: DateTime.now(),
-      );
+    } catch (e) {
+      print('Error updating property status: $e');
     }
   }
 }

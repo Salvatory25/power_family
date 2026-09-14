@@ -23,6 +23,10 @@ import '../../features/sms/sms_history_screen.dart';
 import '../../features/reports/reports_screen.dart';
 import '../../features/settings/profile_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/properties/digital_plot_map_screen.dart';
+import '../../features/finance/finance_hub_screen.dart';
+import '../../features/land_processing/land_processing_hub_screen.dart';
+import '../../features/marketing/ai_marketing_center_screen.dart';
 import '../constants/app_constants.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -64,6 +68,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/properties',
         builder: (context, state) => const PropertyListScreen(),
+      ),
+      GoRoute(
+        path: '/plot-map',
+        builder: (context, state) => const DigitalPlotMapScreen(),
+      ),
+      GoRoute(
+        path: '/finance-hub',
+        builder: (context, state) => const FinanceHubScreen(),
+      ),
+      GoRoute(
+        path: '/land-processing-hub',
+        builder: (context, state) => const LandProcessingHubScreen(),
+      ),
+      GoRoute(
+        path: '/marketing-center',
+        builder: (context, state) => const AIMarketingCenterScreen(),
       ),
       GoRoute(
         path: '/properties/new',

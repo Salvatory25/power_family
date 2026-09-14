@@ -315,7 +315,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   InputDecoration _inputDecoration(String label, String hint, IconData prefix, {Widget? suffixIcon}) {
