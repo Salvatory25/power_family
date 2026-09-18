@@ -8,6 +8,7 @@ class BranchModel {
   final String phone;
   final String email;
   final String? managerId;
+  final double monthlyTarget;
   final String status; // active, inactive
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -20,6 +21,7 @@ class BranchModel {
     required this.phone,
     required this.email,
     this.managerId,
+    this.monthlyTarget = 50000000.0,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
@@ -34,6 +36,7 @@ class BranchModel {
       phone: map['phone'] ?? '',
       email: map['email'] ?? '',
       managerId: map['managerId'],
+      monthlyTarget: (map['monthlyTarget'] ?? map['monthly_target'] as num?)?.toDouble() ?? 50000000.0,
       status: map['status'] ?? 'active',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -48,6 +51,7 @@ class BranchModel {
       'phone': phone,
       'email': email,
       'managerId': managerId,
+      'monthly_target': monthlyTarget,
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -61,6 +65,7 @@ class BranchModel {
     String? phone,
     String? email,
     String? managerId,
+    double? monthlyTarget,
     String? status,
     DateTime? updatedAt,
   }) {
@@ -72,6 +77,7 @@ class BranchModel {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       managerId: managerId ?? this.managerId,
+      monthlyTarget: monthlyTarget ?? this.monthlyTarget,
       status: status ?? this.status,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
-import '../../repositories/seed_data.dart';
+
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
@@ -73,43 +73,90 @@ class SurveyorDashboard extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
 
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.3,
-            children: [
-              StatCard(
-                title: 'Active Survey Tasks',
-                value: tasks.length.toString(),
-                icon: Icons.map_outlined,
-                color: AppColors.accent,
-                onTap: () => context.push('/surveys'),
-              ),
-              StatCard(
-                title: 'In Progress',
-                value: inProgress.toString(),
-                icon: Icons.pending_actions_outlined,
-                color: AppColors.statusSurveying,
-                onTap: () => context.push('/surveys'),
-              ),
-              StatCard(
-                title: 'Completed Surveys',
-                value: completed.toString(),
-                icon: Icons.task_alt,
-                color: AppColors.statusAvailable,
-                onTap: () => context.push('/surveys'),
-              ),
-              StatCard(
-                title: 'Land Plots',
-                value: landProps.length.toString(),
-                icon: Icons.landscape_outlined,
-                color: AppColors.primary,
-                onTap: () => context.push('/properties'),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double width = constraints.maxWidth;
+              final double ratio = width > 400 ? 1.3 : (width > 340 ? 1.15 : 1.05);
+              return GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: ratio,
+                children: [
+                  StatCard(
+                    title: 'Active Survey Tasks',
+                    value: tasks.length.toString(),
+                    icon: Icons.map_outlined,
+                    color: AppColors.accent,
+                    onTap: () => context.push('/surveys'),
+                  ),
+                  StatCard(
+                    title: 'In Progress',
+                    value: inProgress.toString(),
+                    icon: Icons.pending_actions_outlined,
+                    color: AppColors.statusSurveying,
+                    onTap: () => context.push('/surveys'),
+                  ),
+                  StatCard(
+                    title: 'Completed Surveys',
+                    value: completed.toString(),
+                    icon: Icons.task_alt,
+                    color: AppColors.statusAvailable,
+                    onTap: () => context.push('/surveys'),
+                  ),
+                  StatCard(
+                    title: 'Land Plots',
+                    value: landProps.length.toString(),
+                    icon: Icons.landscape_outlined,
+                    color: AppColors.primary,
+                    onTap: () => context.push('/properties'),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          const SizedBox(height: 24),
+
+          // Map Placeholder
+          const Text(
+            'Live GPS Tracking',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Stack(
+              children: [
+                const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.map, size: 48, color: AppColors.textMuted),
+                      SizedBox(height: 8),
+                      Text('Map Integration Placeholder', style: TextStyle(color: AppColors.textSecondary)),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: FloatingActionButton.small(
+                    heroTag: 'map_btn',
+                    onPressed: () {},
+                    backgroundColor: AppColors.primary,
+                    child: const Icon(Icons.my_location),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 24),
@@ -137,25 +184,58 @@ class SurveyorDashboard extends ConsumerWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final task = tasks[index];
-              final prop = SeedData.properties.firstWhere(
-                (p) => p.id == task.propertyId,
-                orElse: () => SeedData.properties[0],
-              );
+              final propList = allProps.where((p) => p.id == task.propertyId).toList();
+
+              final propTitle = propList.isNotEmpty ? propList.first.title : 'Property Task';
+              final plotNo = propList.isNotEmpty ? propList.first.plotNumber ?? "N/A" : "N/A";
+              final plotSize = propList.isNotEmpty ? propList.first.size ?? "N/A" : "N/A";
 
               return Card(
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppColors.surfaceVariant,
-                    child: Icon(Icons.explore_outlined, color: AppColors.statusSurveying),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: AppColors.surfaceVariant,
+                      child: Icon(Icons.explore_outlined, color: AppColors.statusSurveying),
+                    ),
+                    title: Text(propTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      'Plot: $plotNo ($plotSize)\nNotes: ${task.notes}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        StatusBadge(status: task.status),
+                        if (task.status == AppConstants.surveyInProgress) ...[
+                          const SizedBox(height: 4),
+                          InkWell(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Marking $propTitle as completed...')),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.statusAvailable.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.statusAvailable),
+                              ),
+                              child: const Text(
+                                'Mark Completed',
+                                style: TextStyle(fontSize: 10, color: AppColors.statusAvailable, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ]
+                      ],
+                    ),
                   ),
-                  title: Text(prop.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  subtitle: Text(
-                    'Plot: ${prop.plotNumber ?? "N/A"} (${prop.size ?? "N/A"})\nNotes: ${task.notes}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  trailing: StatusBadge(status: task.status),
                 ),
               );
+
             },
           ),
         ],

@@ -4,7 +4,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/communication_service.dart';
 import '../../models/sms_log_model.dart';
 import '../../repositories/sms_repository.dart';
-import '../../repositories/seed_data.dart';
+import '../dashboard/dashboard_providers.dart';
+import '../auth/auth_controller.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/confirm_dialog.dart';
@@ -22,7 +23,7 @@ class SMSComposeScreen extends ConsumerStatefulWidget {
 
 class _SMSComposeScreenState extends ConsumerState<SMSComposeScreen> {
   final _phoneCtrl = TextEditingController();
-  final _messageCtrl = TextEditingController(text: 'Habari, kuwasiliana kutoka Power Family Investment Ltd kuhusu fursa za Viwanja na Nyumba.');
+  final _messageCtrl = TextEditingController(text: 'Habari, Karibu Power Family Investment kwa ajili ya fursa za viwanja, nyumba na huduma zetu.');
   int _characterCount = 0;
   bool _isSending = false;
 
@@ -31,8 +32,6 @@ class _SMSComposeScreenState extends ConsumerState<SMSComposeScreen> {
     super.initState();
     if (widget.initialRecipient != null) {
       _phoneCtrl.text = widget.initialRecipient!;
-    } else {
-      _phoneCtrl.text = SeedData.customers[0].phone;
     }
     _characterCount = _messageCtrl.text.length;
     _messageCtrl.addListener(() {
@@ -64,17 +63,19 @@ class _SMSComposeScreenState extends ConsumerState<SMSComposeScreen> {
 
     setState(() => _isSending = true);
 
+    final currentUser = ref.read(authControllerProvider).value;
+
     // 1. Open Native SMS Application Launcher
     await CommunicationService.openSmsComposer(_phoneCtrl.text, message: _messageCtrl.text);
 
-    // 2. Log SMS attempt to Firestore sms_logs collection securely
+    // 2. Log SMS attempt
     final newLog = SMSLogModel(
       id: 'sms_${DateTime.now().millisecondsSinceEpoch}',
       recipientId: _phoneCtrl.text,
       phoneNumber: _phoneCtrl.text.trim(),
       message: _messageCtrl.text.trim(),
-      sentBy: 'user_admin',
-      branchId: SeedData.branches[0].id,
+      sentBy: currentUser?.uid ?? '',
+      branchId: currentUser?.branchId ?? '',
       status: 'sent',
       providerMessageId: 'MSG-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
       createdAt: DateTime.now(),
@@ -94,6 +95,8 @@ class _SMSComposeScreenState extends ConsumerState<SMSComposeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final customers = ref.watch(customersProvider).value ?? [];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('SMS Hub & Composer'),
@@ -114,15 +117,24 @@ class _SMSComposeScreenState extends ConsumerState<SMSComposeScreen> {
                     const Text('Compose customer communication. Credentials are secured on backend.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     const SizedBox(height: 16),
 
-                    const Text('Select Customer / Recipient:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      value: _phoneCtrl.text,
-                      decoration: const InputDecoration(filled: true),
-                      items: SeedData.customers.map((c) {
-                        return DropdownMenuItem(value: c.phone, child: Text('${c.fullName} (${c.phone})'));
-                      }).toList(),
-                      onChanged: (val) => setState(() => _phoneCtrl.text = val!),
+                    if (customers.isNotEmpty) ...[
+                      const Text('Select Customer / Recipient:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        value: _phoneCtrl.text.isNotEmpty && customers.any((c) => c.phone == _phoneCtrl.text) ? _phoneCtrl.text : null,
+                        decoration: const InputDecoration(filled: true, hintText: 'Select Customer'),
+                        items: customers.where((c) => c.phone.isNotEmpty).map((c) {
+                          return DropdownMenuItem(value: c.phone, child: Text('${c.fullName} (${c.phone})'));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _phoneCtrl.text = val ?? ''),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    AppTextField(
+                      label: 'Phone Number',
+                      hint: '+255 700 000 000',
+                      controller: _phoneCtrl,
                     ),
                     const SizedBox(height: 16),
 
@@ -138,6 +150,7 @@ class _SMSComposeScreenState extends ConsumerState<SMSComposeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Character Count: $_characterCount / 160 (1 SMS)', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+
                         const Text('Power Family SMS Gateway', style: TextStyle(fontSize: 11, color: AppColors.accent, fontWeight: FontWeight.bold)),
                       ],
                     ),

@@ -70,10 +70,12 @@ class LeadRepository {
       print('Error loading leads: $e');
     }
 
+
     return list;
   }
 
   Future<LeadModel> createLead(LeadModel lead) async {
+    LeadModel created = lead;
     try {
       final supabase = _supabase;
       if (supabase != null) {
@@ -91,7 +93,7 @@ class LeadRepository {
           'notes': lead.notes,
         }).select().single();
 
-        return LeadModel(
+        created = LeadModel(
           id: inserted['id'].toString(),
           customerId: lead.customerId,
           propertyId: lead.propertyId,
@@ -110,7 +112,8 @@ class LeadRepository {
       print('Error creating lead in Supabase: $e');
     }
 
-    return lead;
+
+    return created;
   }
 
   Future<void> updateLeadStatus(String leadId, String newStatus) async {
@@ -125,5 +128,7 @@ class LeadRepository {
     } catch (e) {
       print('Error updating lead status: $e');
     }
+
+
   }
 }

@@ -5,7 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/survey_task_model.dart';
 import '../../repositories/survey_repository.dart';
-import '../../repositories/seed_data.dart';
+import '../dashboard/dashboard_providers.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
@@ -40,8 +40,14 @@ class _SurveyListScreenState extends ConsumerState<SurveyListScreen> {
   }
 
   void _showAssignSurveyModal() {
-    String selectedProperty = SeedData.properties.firstWhere((p) => p.type == 'kiwanja', orElse: () => SeedData.properties[0]).id;
-    String selectedSurveyor = SeedData.users.firstWhere((u) => u.role == 'surveyor', orElse: () => SeedData.users[0]).uid;
+    final properties = ref.read(propertiesProvider).value ?? [];
+    final users = ref.read(usersProvider).value ?? [];
+    final branches = ref.read(branchesProvider).value ?? [];
+
+    final kiwanjaProps = properties.where((p) => p.type == 'kiwanja').toList();
+    String selectedProperty = kiwanjaProps.isNotEmpty ? kiwanjaProps.first.id : (properties.isNotEmpty ? properties.first.id : '');
+    final surveyors = users.where((u) => u.role.toLowerCase() == 'surveyor').toList();
+    String selectedSurveyor = surveyors.isNotEmpty ? surveyors.first.uid : (users.isNotEmpty ? users.first.uid : '');
     final notesCtrl = TextEditingController(text: 'Perform boundary beacon mapping and submit ministry survey plan.');
 
     showModalBottomSheet(
@@ -66,24 +72,24 @@ class _SurveyListScreenState extends ConsumerState<SurveyListScreen> {
               const Text('Select Plot Property:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedProperty,
-                decoration: const InputDecoration(filled: true),
-                items: SeedData.properties.where((p) => p.type == 'kiwanja').map((p) {
+                value: selectedProperty.isNotEmpty ? selectedProperty : null,
+                decoration: const InputDecoration(filled: true, hintText: 'Select Property'),
+                items: kiwanjaProps.map((p) {
                   return DropdownMenuItem(value: p.id, child: Text('${p.propertyCode} - ${p.title}'));
                 }).toList(),
-                onChanged: (val) => selectedProperty = val!,
+                onChanged: (val) { if (val != null) selectedProperty = val; },
               ),
               const SizedBox(height: 12),
 
               const Text('Assign Licensed Surveyor:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedSurveyor,
-                decoration: const InputDecoration(filled: true),
-                items: SeedData.users.map((u) {
+                value: selectedSurveyor.isNotEmpty ? selectedSurveyor : null,
+                decoration: const InputDecoration(filled: true, hintText: 'Select Surveyor'),
+                items: users.map((u) {
                   return DropdownMenuItem(value: u.uid, child: Text('${u.fullName} (${AppConstants.getRoleLabel(u.role)})'));
                 }).toList(),
-                onChanged: (val) => selectedSurveyor = val!,
+                onChanged: (val) { if (val != null) selectedSurveyor = val; },
               ),
               const SizedBox(height: 12),
               AppTextField(label: 'Surveying Instructions & Notes', controller: notesCtrl, maxLines: 2),
@@ -92,11 +98,15 @@ class _SurveyListScreenState extends ConsumerState<SurveyListScreen> {
               AppButton(
                 text: 'Assign Survey Task',
                 onPressed: () async {
+                  if (selectedProperty.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please add or select a property first.')));
+                    return;
+                  }
                   final newTask = SurveyTaskModel(
                     id: 'survey_${DateTime.now().millisecondsSinceEpoch}',
                     propertyId: selectedProperty,
                     surveyorId: selectedSurveyor,
-                    branchId: SeedData.branches[0].id,
+                    branchId: branches.isNotEmpty ? branches.first.id : '',
                     status: AppConstants.surveyAssigned,
                     deadline: DateTime.now().add(const Duration(days: 14)),
                     notes: notesCtrl.text.trim(),
@@ -116,6 +126,7 @@ class _SurveyListScreenState extends ConsumerState<SurveyListScreen> {
       ),
     );
   }
+
 
   void _showUpdateSurveyStatusModal(SurveyTaskModel task) {
     String selectedStatus = task.status;
@@ -181,8 +192,16 @@ class _SurveyListScreenState extends ConsumerState<SurveyListScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final task = _tasks[index];
-                final prop = SeedData.properties.firstWhere((p) => p.id == task.propertyId, orElse: () => SeedData.properties[0]);
-                final surveyor = SeedData.users.firstWhere((u) => u.uid == task.surveyorId, orElse: () => SeedData.users[0]);
+
+                final props = ref.read(propertiesProvider).value ?? [];
+                final users = ref.read(usersProvider).value ?? [];
+                final propMatches = props.where((p) => p.id == task.propertyId).toList();
+                final propTitle = propMatches.isNotEmpty ? propMatches.first.title : 'Survey Property';
+                final plotNo = propMatches.isNotEmpty ? (propMatches.first.plotNumber ?? "N/A") : "N/A";
+                final plotSize = propMatches.isNotEmpty ? (propMatches.first.size ?? "N/A") : "N/A";
+                final surveyorMatches = users.where((u) => u.uid == task.surveyorId).toList();
+                final surveyorName = surveyorMatches.isNotEmpty ? surveyorMatches.first.fullName : 'Assigned Surveyor';
+                final surveyorPhone = surveyorMatches.isNotEmpty ? surveyorMatches.first.phone : '';
 
                 return Card(
                   child: Padding(
@@ -193,13 +212,14 @@ class _SurveyListScreenState extends ConsumerState<SurveyListScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(prop.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            Text(propTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                             StatusBadge(status: task.status),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('Plot Number: ${prop.plotNumber ?? "N/A"} (${prop.size ?? "N/A"})', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        Text('Surveyor: ${surveyor.fullName} (${surveyor.phone})', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('Plot Number: $plotNo ($plotSize)', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('Surveyor: $surveyorName ($surveyorPhone)', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+
                         const SizedBox(height: 6),
                         Text('Notes: ${task.notes}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
                         const Divider(height: 20),

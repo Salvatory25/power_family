@@ -5,8 +5,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/property_model.dart';
-import '../../repositories/seed_data.dart';
 import '../../repositories/property_repository.dart';
+import '../dashboard/dashboard_providers.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/confirm_dialog.dart';
@@ -22,7 +22,7 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
-  late PropertyModel _property;
+  PropertyModel? _property;
   bool _isLoading = true;
 
   @override
@@ -31,19 +31,20 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     _loadProperty();
   }
 
-  void _loadProperty() {
-    final match = SeedData.properties.firstWhere(
-      (p) => p.id == widget.propertyId,
-      orElse: () => SeedData.properties[0],
-    );
-    setState(() {
-      _property = match;
-      _isLoading = false;
-    });
+  Future<void> _loadProperty() async {
+    final props = await ref.read(propertyRepositoryProvider).getProperties();
+    final match = props.where((p) => p.id == widget.propertyId).toList();
+    if (mounted) {
+      setState(() {
+        _property = match.isNotEmpty ? match.first : (props.isNotEmpty ? props.first : null);
+        _isLoading = false;
+      });
+    }
   }
 
   void _showStatusUpdateModal() {
-    String selectedStatus = _property.status;
+    if (_property == null) return;
+    String selectedStatus = _property!.status;
 
     showModalBottomSheet(
       context: context,
@@ -79,7 +80,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   text: 'Update Status',
                   onPressed: () async {
                     final repo = ref.read(propertyRepositoryProvider);
-                    await repo.updatePropertyStatus(_property.id, selectedStatus);
+                    await repo.updatePropertyStatus(_property!.id, selectedStatus);
                     Navigator.pop(ctx);
                     _loadProperty();
                     if (mounted) {
@@ -97,24 +98,65 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
   }
 
+  Future<void> _showDeleteConfirmation() async {
+    if (_property == null) return;
+    final confirm = await ConfirmDialog.show(
+      context,
+      title: 'Delete Property',
+      message: 'Are you sure you want to permanently delete this property? This action cannot be undone.',
+      confirmText: 'Delete',
+      isDestructive: true,
+    );
+
+    if (confirm == true) {
+      final repo = ref.read(propertyRepositoryProvider);
+      await repo.deleteProperty(_property!.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Property deleted successfully.')),
+        );
+        context.pop();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_isLoading || _property == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Property Details')),
+        body: Center(
+          child: _isLoading
+              ? const CircularProgressIndicator()
+              : const Text('Property not found.'),
+        ),
+      );
     }
 
-    final p = _property;
-    final branch = SeedData.branches.firstWhere((b) => b.id == p.branchId, orElse: () => SeedData.branches[0]);
-    final agent = SeedData.users.firstWhere((u) => u.uid == p.assignedAgentId, orElse: () => SeedData.users[0]);
+    final p = _property!;
+    final branches = ref.watch(branchesProvider).value ?? [];
+    final users = ref.watch(usersProvider).value ?? [];
+    final branchMatches = branches.where((b) => b.id == p.branchId).toList();
+    final branchName = branchMatches.isNotEmpty ? branchMatches.first.name : 'Main HQ';
+    final agentMatches = users.where((u) => u.uid == p.assignedAgentId).toList();
+    final agentName = agentMatches.isNotEmpty ? agentMatches.first.fullName : 'Unassigned Agent';
+
 
     return Scaffold(
       appBar: AppBar(
         title: Text(p.propertyCode),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_note),
-            tooltip: 'Update Status',
-            onPressed: _showStatusUpdateModal,
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Property',
+            onPressed: () {
+              context.push('/properties/edit', extra: p).then((_) => _loadProperty());
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.redAccent),
+            tooltip: 'Delete Property',
+            onPressed: _showDeleteConfirmation,
           ),
         ],
       ),
@@ -229,8 +271,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         backgroundColor: AppColors.primary,
                         child: Icon(Icons.person, color: Colors.white),
                       ),
-                      title: Text('Assigned Agent: ${agent.fullName}'),
-                      subtitle: Text('Branch: ${branch.name} (${branch.code})'),
+                      title: Text('Assigned Agent: $agentName'),
+                      subtitle: Text('Branch: $branchName'),
                       trailing: IconButton(
                         icon: const Icon(Icons.phone, color: AppColors.statusAvailable),
                         onPressed: () {

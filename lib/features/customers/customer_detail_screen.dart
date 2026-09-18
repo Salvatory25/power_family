@@ -5,7 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/communication_service.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/customer_model.dart';
-import '../../repositories/seed_data.dart';
+import '../dashboard/dashboard_providers.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 
@@ -16,10 +16,16 @@ class CustomerDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final customer = SeedData.customers.firstWhere(
-      (c) => c.id == customerId,
-      orElse: () => SeedData.customers[0],
-    );
+    final customers = ref.watch(customersProvider).value ?? [];
+    final matches = customers.where((c) => c.id == customerId).toList();
+    if (matches.isEmpty && customers.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Customer Details')),
+        body: const Center(child: Text('Customer profile not found.')),
+      );
+    }
+    final customer = matches.isNotEmpty ? matches.first : customers.first;
+
 
     return Scaffold(
       appBar: AppBar(

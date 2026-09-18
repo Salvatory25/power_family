@@ -27,6 +27,7 @@ import '../../features/properties/digital_plot_map_screen.dart';
 import '../../features/finance/finance_hub_screen.dart';
 import '../../features/land_processing/land_processing_hub_screen.dart';
 import '../../features/marketing/ai_marketing_center_screen.dart';
+import '../../models/property_model.dart';
 import '../constants/app_constants.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -88,6 +89,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/properties/new',
         builder: (context, state) => const PropertyFormScreen(),
+      ),
+      GoRoute(
+        path: '/properties/edit',
+        builder: (context, state) {
+          final property = state.extra as PropertyModel?;
+          return PropertyFormScreen(propertyToEdit: property);
+        },
       ),
       GoRoute(
         path: '/properties/:id',

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
-import '../../repositories/seed_data.dart';
+
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../auth/auth_controller.dart';
@@ -379,61 +379,67 @@ class SuperAdminDashboard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
 
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.25,
-                    children: [
-                      StatCard(
-                        title: 'Total Revenue',
-                        value: Formatters.formatCurrency(totalRevenue),
-                        icon: Icons.payments_outlined,
-                        color: AppColors.statusAvailable,
-                        subtitle: '${sales.length} Completed Sales',
-                        onTap: () => context.push('/sales'),
-                      ),
-                      StatCard(
-                        title: 'Total Properties',
-                        value: properties.length.toString(),
-                        icon: Icons.holiday_village_outlined,
-                        color: AppColors.primary,
-                        subtitle: '$availableProps Available | $soldProps Sold',
-                        onTap: () => context.push('/properties'),
-                      ),
-                      StatCard(
-                        title: 'Company Branches',
-                        value: branches.length.toString(),
-                        icon: Icons.store_mall_directory_outlined,
-                        color: AppColors.accent,
-                        subtitle: '${branches.where((b) => b.status == 'active').length} Active Branches',
-                        onTap: () => context.push('/branches'),
-                      ),
-                      StatCard(
-                        title: 'System Users',
-                        value: users.length.toString(),
-                        icon: Icons.people_outline,
-                        color: AppColors.statusUnderProcess,
-                        subtitle: '$pendingUsers Pending Approval',
-                        onTap: () => context.push('/users'),
-                      ),
-                      StatCard(
-                        title: 'Customers',
-                        value: customers.length.toString(),
-                        icon: Icons.person_search_outlined,
-                        color: AppColors.statusSurveying,
-                        onTap: () => context.push('/customers'),
-                      ),
-                      StatCard(
-                        title: 'Active Leads',
-                        value: leads.length.toString(),
-                        icon: Icons.trending_up,
-                        color: AppColors.statusReserved,
-                        onTap: () => context.push('/leads'),
-                      ),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double width = constraints.maxWidth;
+                      final double ratio = width > 400 ? 1.25 : (width > 340 ? 1.1 : 1.0);
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: ratio,
+                        children: [
+                          StatCard(
+                            title: 'Total Revenue',
+                            value: Formatters.formatCurrency(totalRevenue),
+                            icon: Icons.payments_outlined,
+                            color: AppColors.statusAvailable,
+                            subtitle: '${sales.length} Completed Sales',
+                            onTap: () => context.push('/sales'),
+                          ),
+                          StatCard(
+                            title: 'Total Properties',
+                            value: properties.length.toString(),
+                            icon: Icons.holiday_village_outlined,
+                            color: AppColors.primary,
+                            subtitle: '$availableProps Available | $soldProps Sold',
+                            onTap: () => context.push('/properties'),
+                          ),
+                          StatCard(
+                            title: 'Company Branches',
+                            value: branches.length.toString(),
+                            icon: Icons.store_mall_directory_outlined,
+                            color: AppColors.accent,
+                            subtitle: '${branches.where((b) => b.status == 'active').length} Active Branches',
+                            onTap: () => context.push('/branches'),
+                          ),
+                          StatCard(
+                            title: 'System Users',
+                            value: users.length.toString(),
+                            icon: Icons.people_outline,
+                            color: AppColors.statusUnderProcess,
+                            subtitle: '$pendingUsers Pending Approval',
+                            onTap: () => context.push('/users'),
+                          ),
+                          StatCard(
+                            title: 'Customers',
+                            value: customers.length.toString(),
+                            icon: Icons.person_search_outlined,
+                            color: AppColors.statusSurveying,
+                            onTap: () => context.push('/customers'),
+                          ),
+                          StatCard(
+                            title: 'Active Leads',
+                            value: leads.length.toString(),
+                            icon: Icons.trending_up,
+                            color: AppColors.statusReserved,
+                            onTap: () => context.push('/leads'),
+                          ),
+                        ],
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 28),

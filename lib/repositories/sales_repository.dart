@@ -94,10 +94,12 @@ class SalesRepository {
       print('Error loading sales: $e');
     }
 
+
     return list;
   }
 
   Future<SaleModel> recordSale(SaleModel sale) async {
+    SaleModel created = sale;
     try {
       final supabase = _supabase;
       if (supabase != null) {
@@ -167,7 +169,7 @@ class SalesRepository {
           await _propertyRepo.updatePropertyStatus(plotUuid, AppConstants.propertySold);
         }
 
-        return SaleModel(
+        created = SaleModel(
           id: inserted['id'].toString(),
           propertyId: plotUuid,
           customerId: customerUuid,
@@ -185,6 +187,7 @@ class SalesRepository {
       print('Error recording sale in Supabase: $e');
     }
 
-    return sale;
+
+    return created;
   }
 }

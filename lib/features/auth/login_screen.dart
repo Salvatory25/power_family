@@ -17,8 +17,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'admin@powerfamily.co.tz');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   String? _errorMessage;
 
@@ -53,17 +53,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _quickRoleSelect(String email, String roleName) {
-    _emailController.text = email;
-    _passwordController.text = 'password123';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Selected demo account: $roleName ($email)'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -76,37 +65,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // Real Estate Header Background Banner
           HeaderBackground(
             height: 280,
-            child: SafeArea(
+            child: const SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: () => context.push('/register'),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            backgroundColor: Colors.white.withOpacity(0.15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                          icon: const Icon(Icons.person_add_rounded, size: 16, color: AppColors.accent),
-                          label: const Text(
-                            'Sign Up',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    const AppLogo(
+                    SizedBox(height: 38),
+                    AppLogo(
                       size: 76,
                       showText: true,
                       isVertical: true,
@@ -319,45 +285,63 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              // Demo Login Roles Card Container
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
+              // Don't have an account? Sign Up Link
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.flash_on_rounded, size: 16, color: AppColors.accent),
-                        SizedBox(width: 6),
-                        Text(
-                          'DEMO ACCOUNTS',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primary, letterSpacing: 0.8),
-                        ),
-                      ],
+                    const Text(
+                      "Don't have an account? ",
+                      style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        _roleChip('Super Admin', 'admin@powerfamily.co.tz'),
-                        _roleChip('Branch Manager', 'manager.dar@powerfamily.co.tz'),
-                        _roleChip('Sales Agent', 'agent1@powerfamily.co.tz'),
-                        _roleChip('Surveyor', 'surveyor1@powerfamily.co.tz'),
-                      ],
+                    GestureDetector(
+                      onTap: () => context.push('/register'),
+                      child: const Text(
+                        'Sign Up',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.accent,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
+
+            ],
+          ),
+        ),
+      ),
+
+      // Top Interactive Header Bar (on top of Stack layer)
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => context.push('/register'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  backgroundColor: Colors.white.withOpacity(0.15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+                icon: const Icon(Icons.person_add_rounded, size: 16, color: AppColors.accent),
+                label: const Text(
+                  'Sign Up',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -366,17 +350,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   ),
 );
   }
-
-  Widget _roleChip(String label, String email) {
-    return ActionChip(
-      label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary)),
-      avatar: const Icon(Icons.person_pin_rounded, size: 16, color: AppColors.accent),
-      backgroundColor: AppColors.background,
-      side: const BorderSide(color: AppColors.border),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      onPressed: () => _quickRoleSelect(email, label),
-    );
-  }
 }
+
 

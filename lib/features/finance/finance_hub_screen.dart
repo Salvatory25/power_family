@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
-import '../../repositories/seed_data.dart';
+import '../dashboard/dashboard_providers.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 
@@ -72,15 +72,20 @@ class _FinanceHubScreenState extends ConsumerState<FinanceHubScreen> with Single
             child: const Text('Close'),
           ),
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              minimumSize: Size.zero,
+            ),
             onPressed: () {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Downloading PDF Receipt $receiptNo...')),
               );
             },
-            icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-            label: const Text('Print / Download PDF'),
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+            label: const Text('Print / PDF', style: TextStyle(fontSize: 13)),
           ),
         ],
       ),
@@ -102,8 +107,11 @@ class _FinanceHubScreenState extends ConsumerState<FinanceHubScreen> with Single
 
   @override
   Widget build(BuildContext context) {
-    final sales = SeedData.sales;
-    final totalRevenue = sales.fold<double>(0, (sum, s) => sum + (s.amount * 0.4));
+    final sales = ref.watch(salesProvider).value ?? [];
+    final customers = ref.watch(customersProvider).value ?? [];
+    final properties = ref.watch(propertiesProvider).value ?? [];
+
+    final totalRevenue = sales.fold<double>(0, (sum, s) => sum + s.amount);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -123,33 +131,90 @@ class _FinanceHubScreenState extends ConsumerState<FinanceHubScreen> with Single
             Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Installments'),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Export to PDF',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Generating Financial Report PDF...')),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.table_view_outlined),
+            tooltip: 'Export to Excel',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Exporting records to Excel...')),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // Financial Summary Header
+          // Header Financial Summary
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            color: AppColors.primary,
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
                 Expanded(
                   child: StatCard(
-                    title: 'Total Revenue',
+                    title: 'Total Revenue Recorded',
                     value: Formatters.formatCurrency(totalRevenue),
-                    icon: Icons.payments_rounded,
-                    color: const Color(0xFF10B981),
+                    icon: Icons.account_balance_wallet_rounded,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: StatCard(
                     title: 'Control Numbers',
-                    value: '14 Issued',
+                    value: '${sales.length} Issued',
                     icon: Icons.qr_code_2_rounded,
                     color: AppColors.accent,
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // Quick Filter/Summary Chips
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            color: Colors.white,
+            width: double.infinity,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Chip(
+                    label: const Text('All Records', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    side: BorderSide.none,
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: const Text('Fully Paid: 12', style: TextStyle(fontSize: 12)),
+                    backgroundColor: AppColors.statusAvailable.withOpacity(0.1),
+                    side: BorderSide.none,
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: const Text('Partial: 5', style: TextStyle(fontSize: 12)),
+                    backgroundColor: AppColors.accent.withOpacity(0.1),
+                    side: BorderSide.none,
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: const Text('Pending: 3', style: TextStyle(fontSize: 12)),
+                    backgroundColor: AppColors.statusSold.withOpacity(0.1),
+                    side: BorderSide.none,
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -159,142 +224,162 @@ class _FinanceHubScreenState extends ConsumerState<FinanceHubScreen> with Single
               controller: _tabController,
               children: [
                 // Invoices List Tab
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: 4,
-                  itemBuilder: (context, idx) {
-                    final invNo = 'INV-2026-00000${idx + 1}';
-                    final amount = 15000000.0 * (idx + 1);
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppColors.background,
-                          child: Icon(Icons.article_outlined, color: AppColors.primary),
-                        ),
-                        title: Text(invNo, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Due: 30 Sep 2026 • Control No: 994028471$idx'),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(Formatters.formatCurrency(amount), style: const TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            const StatusBadge(status: 'UNPAID'),
-                          ],
-                        ),
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Viewing Invoice details for $invNo')),
+                sales.isEmpty
+                    ? const Center(child: Text('No sales or invoices recorded yet.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: sales.length,
+                        itemBuilder: (context, idx) {
+                          final sale = sales[idx];
+                          final invNo = 'INV-2026-00000${idx + 1}';
+                          final amount = sale.amount;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: AppColors.background,
+                                child: Icon(Icons.article_outlined, color: AppColors.primary),
+                              ),
+                              title: Text(invNo, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('Date: ${Formatters.formatDate(sale.createdAt)}'),
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(Formatters.formatCurrency(amount), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 4),
+                                  StatusBadge(status: sale.paymentStatus),
+                                ],
+                              ),
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Viewing Invoice details for $invNo')),
+                                );
+                              },
+                            ),
                           );
                         },
                       ),
-                    );
-                  },
-                ),
 
-                // Receipts Tab (REC-2026-000001)
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: sales.length,
-                  itemBuilder: (context, idx) {
-                    final sale = sales[idx];
-                    final customer = SeedData.customers.firstWhere(
-                      (c) => c.id == sale.customerId,
-                      orElse: () => SeedData.customers.first,
-                    );
-                    final property = SeedData.properties.firstWhere(
-                      (p) => p.id == sale.propertyId,
-                      orElse: () => SeedData.properties.first,
-                    );
-                    final depositPaid = sale.amount * 0.4;
-                    final recNo = 'REC-2026-00000${idx + 1}';
+                // Receipts Tab
+                sales.isEmpty
+                    ? const Center(child: Text('No receipts issued yet.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: sales.length,
+                        itemBuilder: (context, idx) {
+                          final sale = sales[idx];
+                          final custMatches = customers.where((c) => c.id == sale.customerId).toList();
+                          final custName = custMatches.isNotEmpty ? custMatches.first.fullName : 'Customer';
+                          final propMatches = properties.where((p) => p.id == sale.propertyId).toList();
+                          final propTitle = propMatches.isNotEmpty ? propMatches.first.title : 'Property';
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Color(0xFFECFDF5),
-                          child: Icon(Icons.check_circle_outline, color: Color(0xFF10B981)),
-                        ),
-                        title: Text(recNo, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Customer: ${customer.fullName} • Property: ${property.title}'),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(Formatters.formatCurrency(depositPaid), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                            const SizedBox(height: 4),
-                            const StatusBadge(status: 'CONFIRMED'),
-                          ],
-                        ),
-                        onTap: () {
-                          _showReceiptDialog(context, recNo, customer.fullName, depositPaid, '14 Sep 2026');
+                          final depositPaid = sale.amount;
+                          final recNo = 'REC-2026-00000${idx + 1}';
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Color(0xFFECFDF5),
+                                child: Icon(Icons.check_circle_outline, color: Color(0xFF10B981)),
+                              ),
+                              title: Text(recNo, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('Customer: $custName • Property: $propTitle'),
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(Formatters.formatCurrency(depositPaid), style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                                  const SizedBox(height: 4),
+                                  StatusBadge(status: sale.paymentStatus),
+                                ],
+                              ),
+                              onTap: () {
+                                _showReceiptDialog(context, recNo, custName, depositPaid, Formatters.formatDate(sale.createdAt));
+                              },
+                            ),
+                          );
                         },
                       ),
-                    );
-                  },
-                ),
 
                 // Installments Tab
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: sales.length,
-                  itemBuilder: (context, idx) {
-                    final sale = sales[idx];
-                    final customer = SeedData.customers.firstWhere(
-                      (c) => c.id == sale.customerId,
-                      orElse: () => SeedData.customers.first,
-                    );
-                    final property = SeedData.properties.firstWhere(
-                      (p) => p.id == sale.propertyId,
-                      orElse: () => SeedData.properties.first,
-                    );
-                    final depositPaid = sale.amount * 0.4;
-                    final salePrice = sale.amount;
-                    final balance = salePrice - depositPaid;
+                sales.isEmpty
+                    ? const Center(child: Text('No installment records yet.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: sales.length,
+                        itemBuilder: (context, idx) {
+                          final sale = sales[idx];
+                          final custMatches = customers.where((c) => c.id == sale.customerId).toList();
+                          final custName = custMatches.isNotEmpty ? custMatches.first.fullName : 'Customer';
+                          final propMatches = properties.where((p) => p.id == sale.propertyId).toList();
+                          final propTitle = propMatches.isNotEmpty ? propMatches.first.title : 'Property';
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(customer.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                const StatusBadge(status: 'INSTALLMENT'),
-                              ],
+                          final depositPaid = sale.amount * 0.4;
+                          final salePrice = sale.amount;
+                          final balance = salePrice - depositPaid;
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(custName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                      StatusBadge(status: sale.paymentStatus),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text('Property: $propTitle'),
+                                  const SizedBox(height: 12),
+                                  LinearProgressIndicator(
+                                    value: (depositPaid / salePrice).clamp(0.0, 1.0),
+                                    backgroundColor: AppColors.border,
+                                    color: AppColors.accent,
+                                    minHeight: 8,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Paid: ${Formatters.formatCurrency(depositPaid)}', style: const TextStyle(fontSize: 12, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                                      Text('Balance: ${Formatters.formatCurrency(balance)}', style: const TextStyle(fontSize: 12, color: Color(0xFFF43F5E), fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Opening Payment Modal for $custName...')),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.add_card, size: 16),
+                                      label: const Text('Record New Payment'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.primary,
+                                        side: const BorderSide(color: AppColors.primary),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Text('Property: ${property.title}'),
-                            const SizedBox(height: 12),
-                            LinearProgressIndicator(
-                              value: (depositPaid / salePrice).clamp(0.0, 1.0),
-                              backgroundColor: AppColors.border,
-                              color: AppColors.accent,
-                              minHeight: 8,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Paid: ${Formatters.formatCurrency(depositPaid)}', style: const TextStyle(fontSize: 12, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-                                Text('Balance: ${Formatters.formatCurrency(balance)}', style: const TextStyle(fontSize: 12, color: Color(0xFFF43F5E), fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ],
-                        ),
+                          );
+
+                        },
                       ),
-                    );
-                  },
-                ),
               ],
             ),
           ),
@@ -303,3 +388,4 @@ class _FinanceHubScreenState extends ConsumerState<FinanceHubScreen> with Single
     );
   }
 }
+

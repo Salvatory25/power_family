@@ -5,12 +5,22 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/constants/app_constants.dart';
 
+
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://lwrfjgnlepgsmsqzntvj.supabase.co');
-    const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_iRT1-Fbk4WnASkcsWuHXhw_VgpFCjCy');
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('Error loading .env file: $e');
+  }
+
+  try {
+    final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
     await Supabase.initialize(
       url: supabaseUrl,

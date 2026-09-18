@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sms_log_model.dart';
-import 'seed_data.dart';
 
 class SMSRepository {
   SupabaseClient? get _supabase {
@@ -44,6 +43,7 @@ class SMSRepository {
       }
     } catch (_) {}
 
+
     return list;
   }
 
@@ -69,14 +69,9 @@ class SMSRepository {
           status: log.status,
           createdAt: DateTime.now(),
         );
-        SeedData.smsLogs.add(newLog);
         return newLog;
       }
     } catch (_) {}
-
-    final newId = 'sms_${DateTime.now().millisecondsSinceEpoch}';
-    final newLog = SMSLogModel.fromMap(log.toMap(), newId);
-    SeedData.smsLogs.add(newLog);
-    return newLog;
+    throw Exception('Supabase client not initialized or log failed');
   }
 }

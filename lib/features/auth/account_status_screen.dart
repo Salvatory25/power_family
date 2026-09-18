@@ -7,6 +7,8 @@ import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 import 'auth_controller.dart';
 
+
+
 class AccountStatusScreen extends ConsumerWidget {
   const AccountStatusScreen({super.key});
 
@@ -76,7 +78,9 @@ class AccountStatusScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // Quick Switcher Button for dev testing
+
+
+                // Check Status Button
                 AppButton(
                   text: 'Check Account Status Again',
                   isOutlined: true,
@@ -101,7 +105,7 @@ class AccountStatusScreen extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.logout, size: 18, color: AppColors.statusSold),
                   label: const Text(
-                    'Logout',
+                    'Logout to Login Screen',
                     style: TextStyle(color: AppColors.statusSold, fontWeight: FontWeight.bold),
                   ),
                 ),

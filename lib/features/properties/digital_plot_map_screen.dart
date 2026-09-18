@@ -5,8 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/property_model.dart';
-import '../../repositories/seed_data.dart';
-import '../../widgets/header_background.dart';
+import '../dashboard/dashboard_providers.dart';
 import '../../widgets/status_badge.dart';
 
 class DigitalPlotMapScreen extends ConsumerStatefulWidget {
@@ -23,11 +22,13 @@ class _DigitalPlotMapScreenState extends ConsumerState<DigitalPlotMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final plots = SeedData.properties.where((p) {
+    final allProperties = ref.watch(propertiesProvider).value ?? [];
+    final plots = allProperties.where((p) {
       final matchesProject = _selectedProject == 'All Projects' || p.location.contains(_selectedProject);
       final matchesStatus = _selectedStatusFilter == 'ALL' || p.status == _selectedStatusFilter;
       return matchesProject && matchesStatus;
     }).toList();
+
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -102,14 +103,20 @@ class _DigitalPlotMapScreenState extends ConsumerState<DigitalPlotMapScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: AppColors.background,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _legendItem('Available', const Color(0xFF10B981)),
-                _legendItem('Reserved', const Color(0xFFF59E0B)),
-                _legendItem('Sold', const Color(0xFFEF4444)),
-                _legendItem('Title Ready', Colors.blue),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _legendItem('Available', const Color(0xFF10B981)),
+                  const SizedBox(width: 16),
+                  _legendItem('Reserved', const Color(0xFFF59E0B)),
+                  const SizedBox(width: 16),
+                  _legendItem('Sold', const Color(0xFFEF4444)),
+                  const SizedBox(width: 16),
+                  _legendItem('Title Ready', Colors.blue),
+                ],
+              ),
             ),
           ),
 
@@ -120,10 +127,12 @@ class _DigitalPlotMapScreenState extends ConsumerState<DigitalPlotMapScreen> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: MediaQuery.of(context).size.width > 500
+                          ? 4
+                          : (MediaQuery.of(context).size.width > 360 ? 3 : 2),
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
                       childAspectRatio: 1.1,
                     ),
                     itemCount: plots.length,
@@ -158,15 +167,19 @@ class _DigitalPlotMapScreenState extends ConsumerState<DigitalPlotMapScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.landscape_rounded, color: statusColor, size: 28),
+                              Icon(Icons.landscape_rounded, color: statusColor, size: 26),
                               const SizedBox(height: 4),
                               Text(
                                 'Plot ${plot.plotNumber ?? plot.propertyCode}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                               ),
                               Text(
                                 plot.size ?? 'N/A',
-                                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
                               ),
                             ],
                           ),
@@ -179,14 +192,14 @@ class _DigitalPlotMapScreenState extends ConsumerState<DigitalPlotMapScreen> {
                 // Selected Plot Bottom Card
                 if (_selectedPlot != null)
                   Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
                     child: Card(
                       elevation: 8,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(14.0),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,50 +207,67 @@ class _DigitalPlotMapScreenState extends ConsumerState<DigitalPlotMapScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _selectedPlot!.title,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    ),
-                                    Text(
-                                      'Code: ${_selectedPlot!.propertyCode} • Size: ${_selectedPlot!.size}',
-                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                    ),
-                                  ],
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _selectedPlot!.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      ),
+                                      Text(
+                                        'Code: ${_selectedPlot!.propertyCode} • Size: ${_selectedPlot!.size}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
                                 StatusBadge(status: _selectedPlot!.status),
                               ],
                             ),
-                            const Divider(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            const Divider(height: 16),
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
                                 Text(
                                   Formatters.formatCurrency(_selectedPlot!.price),
-                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.primary),
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.primary),
                                 ),
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        minimumSize: Size.zero,
+                                      ),
                                       onPressed: () {
                                         context.push('/plot-details', extra: _selectedPlot);
                                       },
-                                      child: const Text('View Plot Card'),
+                                      child: const Text('View Plot', style: TextStyle(fontSize: 12)),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.accent,
                                         foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        minimumSize: Size.zero,
                                       ),
                                       onPressed: () {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(content: Text('Plot ${_selectedPlot!.propertyCode} booking initiated.')),
                                         );
                                       },
-                                      child: const Text('Book Plot'),
+                                      child: const Text('Book Plot', style: TextStyle(fontSize: 12)),
                                     ),
                                   ],
                                 ),

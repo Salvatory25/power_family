@@ -6,7 +6,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/customer_model.dart';
 import '../../repositories/customer_repository.dart';
-import '../../repositories/seed_data.dart';
+import '../auth/auth_controller.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
@@ -95,8 +95,9 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
                     interestedPropertyTypes: [AppConstants.typeKiwanja],
                     budget: double.tryParse(budgetCtrl.text) ?? 0,
                     status: AppConstants.customerNew,
-                    branchId: SeedData.branches[0].id,
-                    createdBy: 'user_admin',
+                    branchId: ref.read(authControllerProvider).value?.branchId ?? '',
+                    createdBy: ref.read(authControllerProvider).value?.uid ?? 'user',
+
                     createdAt: DateTime.now(),
                     updatedAt: DateTime.now(),
                   );

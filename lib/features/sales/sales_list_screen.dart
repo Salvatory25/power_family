@@ -5,7 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/sale_model.dart';
 import '../../repositories/sales_repository.dart';
-import '../../repositories/seed_data.dart';
+import '../dashboard/dashboard_providers.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
@@ -40,10 +40,16 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
   }
 
   void _showRecordSaleModal() {
-    String selectedProperty = SeedData.properties[0].id;
-    String selectedCustomer = SeedData.customers[0].id;
-    String selectedAgent = SeedData.users.firstWhere((u) => u.role == 'sales_agent', orElse: () => SeedData.users[0]).uid;
-    final amountCtrl = TextEditingController(text: SeedData.properties[0].price.toStringAsFixed(0));
+    final properties = ref.read(propertiesProvider).value ?? [];
+    final customers = ref.read(customersProvider).value ?? [];
+    final users = ref.read(usersProvider).value ?? [];
+    final branches = ref.read(branchesProvider).value ?? [];
+
+    String selectedProperty = properties.isNotEmpty ? properties.first.id : '';
+    String selectedCustomer = customers.isNotEmpty ? customers.first.id : '';
+    final agents = users.where((u) => u.role.toLowerCase() == 'sales_agent').toList();
+    String selectedAgent = agents.isNotEmpty ? agents.first.uid : (users.isNotEmpty ? users.first.uid : '');
+    final amountCtrl = TextEditingController(text: properties.isNotEmpty ? properties.first.price.toStringAsFixed(0) : '0');
     String selectedPaymentStatus = AppConstants.paymentPaid;
     String selectedSaleStatus = AppConstants.saleCompleted;
     final notesCtrl = TextEditingController(text: 'Full payment received. Title transfer in progress.');
@@ -70,24 +76,24 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
               const Text('Select Sold Property:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedProperty,
-                decoration: const InputDecoration(filled: true),
-                items: SeedData.properties.map((p) {
+                value: selectedProperty.isNotEmpty ? selectedProperty : null,
+                decoration: const InputDecoration(filled: true, hintText: 'Select Property'),
+                items: properties.map((p) {
                   return DropdownMenuItem(value: p.id, child: Text('${p.propertyCode} - ${p.title}'));
                 }).toList(),
-                onChanged: (val) => selectedProperty = val!,
+                onChanged: (val) { if (val != null) selectedProperty = val; },
               ),
               const SizedBox(height: 12),
 
               const Text('Select Buyer (Customer):', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedCustomer,
-                decoration: const InputDecoration(filled: true),
-                items: SeedData.customers.map((c) {
+                value: selectedCustomer.isNotEmpty ? selectedCustomer : null,
+                decoration: const InputDecoration(filled: true, hintText: 'Select Customer'),
+                items: customers.map((c) {
                   return DropdownMenuItem(value: c.id, child: Text(c.fullName));
                 }).toList(),
-                onChanged: (val) => selectedCustomer = val!,
+                onChanged: (val) { if (val != null) selectedCustomer = val; },
               ),
               const SizedBox(height: 12),
 
@@ -114,12 +120,16 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
               AppButton(
                 text: 'Record Sale Transaction',
                 onPressed: () async {
+                  if (selectedProperty.isEmpty || selectedCustomer.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select property and customer first.')));
+                    return;
+                  }
                   final newSale = SaleModel(
                     id: 'sale_${DateTime.now().millisecondsSinceEpoch}',
                     propertyId: selectedProperty,
                     customerId: selectedCustomer,
                     agentId: selectedAgent,
-                    branchId: SeedData.branches[0].id,
+                    branchId: branches.isNotEmpty ? branches.first.id : '',
                     amount: double.tryParse(amountCtrl.text) ?? 0,
                     paymentStatus: selectedPaymentStatus,
                     saleStatus: selectedSaleStatus,
@@ -128,6 +138,7 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
                     updatedAt: DateTime.now(),
                   );
                   final repo = ref.read(salesRepositoryProvider);
+
                   await repo.recordSale(newSale);
                   Navigator.pop(ctx);
                   _loadSales();
@@ -180,7 +191,7 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
                     ],
                   ),
                 ),
-
+ 
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -188,8 +199,13 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final sale = _sales[index];
-                      final cust = SeedData.customers.firstWhere((c) => c.id == sale.customerId, orElse: () => SeedData.customers[0]);
-                      final prop = SeedData.properties.firstWhere((p) => p.id == sale.propertyId, orElse: () => SeedData.properties[0]);
+
+                      final customers = ref.read(customersProvider).value ?? [];
+                      final properties = ref.read(propertiesProvider).value ?? [];
+                      final custMatches = customers.where((c) => c.id == sale.customerId).toList();
+                      final custName = custMatches.isNotEmpty ? custMatches.first.fullName : 'Buyer';
+                      final propMatches = properties.where((p) => p.id == sale.propertyId).toList();
+                      final propTitle = propMatches.isNotEmpty ? '${propMatches.first.propertyCode} - ${propMatches.first.title}' : 'Property Transaction';
 
                       return Card(
                         child: ListTile(
@@ -198,7 +214,8 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
                             child: Icon(Icons.check, color: Colors.white),
                           ),
                           title: Text(Formatters.formatCurrency(sale.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          subtitle: Text('Buyer: ${cust.fullName}\nProperty: ${prop.propertyCode} - ${prop.title}', style: const TextStyle(fontSize: 12)),
+                          subtitle: Text('Buyer: $custName\nProperty: $propTitle', style: const TextStyle(fontSize: 12)),
+
                           trailing: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,

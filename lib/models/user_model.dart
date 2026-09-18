@@ -30,20 +30,40 @@ class UserModel {
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
+    final fn = map['fullName'] ?? map['full_name'];
+    final String fullNameCalculated;
+    if (fn != null && fn.toString().isNotEmpty) {
+      fullNameCalculated = fn.toString();
+    } else {
+      final first = map['first_name'] ?? '';
+      final last = map['last_name'] ?? '';
+      fullNameCalculated = '$first $last'.trim();
+    }
+
     return UserModel(
       uid: id,
-      fullName: map['fullName'] ?? '',
-      email: map['email'] ?? '',
-      phone: map['phone'] ?? '',
-      role: map['role'] ?? 'sales_agent',
-      branchId: map['branchId'],
-      branchName: map['branchName'],
-      photoUrl: map['photoUrl'],
-      status: map['status'] ?? 'pending',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastLoginAt: (map['lastLoginAt'] as Timestamp?)?.toDate(),
+      fullName: fullNameCalculated.isNotEmpty ? fullNameCalculated : 'Staff Member',
+      email: (map['email'] ?? '').toString(),
+      phone: (map['phone'] ?? map['phone_number'] ?? '').toString(),
+      role: (map['role'] ?? map['primary_role'] ?? 'SALES_AGENT').toString(),
+      branchId: map['branchId'] ?? map['branch_id'],
+      branchName: map['branchName'] ?? map['branch_name'],
+      photoUrl: map['photoUrl'] ?? map['photo_url'],
+      status: (map['status'] ?? 'PENDING').toString(),
+      createdAt: _parseDate(map['createdAt'] ?? map['created_at']),
+      updatedAt: _parseDate(map['updatedAt'] ?? map['updated_at']),
+      lastLoginAt: _parseDate(map['lastLoginAt'] ?? map['last_login_at']),
     );
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    return DateTime.now();
   }
 
   Map<String, dynamic> toMap() {

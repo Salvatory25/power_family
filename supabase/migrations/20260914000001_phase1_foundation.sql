@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS branches (
     phone VARCHAR(50),
     email VARCHAR(255),
     manager_id UUID,
+    monthly_target NUMERIC DEFAULT 50000000.0,
     status record_status DEFAULT 'ACTIVE',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

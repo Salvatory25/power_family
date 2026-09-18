@@ -73,21 +73,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           // Real Estate Header Background Banner
           HeaderBackground(
             height: 270,
-            child: SafeArea(
+            child: const SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 child: Column(
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        onPressed: () => context.pop(),
-                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                        tooltip: 'Back to Login',
-                      ),
-                    ),
-                    const AppLogo(
+                    SizedBox(height: 38),
+                    AppLogo(
                       size: 72,
                       showText: true,
                       isVertical: true,
@@ -311,6 +304,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+
+      // Top Interactive Header Bar (on top of Stack layer)
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () => context.pop(),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                tooltip: 'Back to Login',
+              ),
             ],
           ),
         ),

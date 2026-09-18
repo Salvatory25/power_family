@@ -563,3 +563,58 @@ DROP POLICY IF EXISTS payments_access ON payments;
 CREATE POLICY payments_access ON payments FOR ALL USING (
     current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT', 'ACCOUNTANT') OR branch_id = current_user_branch()
 );
+
+DROP POLICY IF EXISTS organizations_access ON organizations;
+CREATE POLICY organizations_access ON organizations FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT')
+);
+
+DROP POLICY IF EXISTS projects_access ON projects;
+CREATE POLICY projects_access ON projects FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT') OR branch_id = current_user_branch()
+);
+
+DROP POLICY IF EXISTS leads_access ON leads;
+CREATE POLICY leads_access ON leads FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT') OR branch_id = current_user_branch()
+);
+
+DROP POLICY IF EXISTS bookings_access ON bookings;
+CREATE POLICY bookings_access ON bookings FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT') OR branch_id = current_user_branch()
+);
+
+DROP POLICY IF EXISTS invoices_access ON invoices;
+CREATE POLICY invoices_access ON invoices FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT', 'ACCOUNTANT') OR branch_id = current_user_branch()
+);
+
+DROP POLICY IF EXISTS receipts_access ON receipts;
+CREATE POLICY receipts_access ON receipts FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT', 'ACCOUNTANT') OR branch_id = current_user_branch()
+);
+
+DROP POLICY IF EXISTS audit_logs_access ON audit_logs;
+CREATE POLICY audit_logs_access ON audit_logs FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT')
+);
+
+DROP POLICY IF EXISTS survey_jobs_access ON survey_jobs;
+CREATE POLICY survey_jobs_access ON survey_jobs FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT', 'SURVEYOR', 'SURVEY_ASSISTANT') OR project_id IN (SELECT id FROM projects WHERE branch_id = current_user_branch())
+);
+
+DROP POLICY IF EXISTS bitcon_cases_access ON bitcon_cases;
+CREATE POLICY bitcon_cases_access ON bitcon_cases FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT') OR branch_id = current_user_branch()
+);
+
+DROP POLICY IF EXISTS halmashauri_access ON halmashauri_applications;
+CREATE POLICY halmashauri_access ON halmashauri_applications FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT') OR project_id IN (SELECT id FROM projects WHERE branch_id = current_user_branch())
+);
+
+DROP POLICY IF EXISTS title_deeds_access ON title_deeds;
+CREATE POLICY title_deeds_access ON title_deeds FOR ALL USING (
+    current_user_role() IN ('SUPER_ADMIN', 'ADMIN', 'MANAGEMENT') OR branch_id = current_user_branch()
+);

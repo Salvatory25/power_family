@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:power_family/core/constants/app_constants.dart';
 import 'package:power_family/core/utils/formatters.dart';
-import 'package:power_family/repositories/seed_data.dart';
+
 
 void main() {
   group('POWER FAMILY Core Logic & Formatter Tests', () {
@@ -25,12 +25,5 @@ void main() {
       expect(AppConstants.getRoleLabel(AppConstants.roleSurveyor), equals('Surveyor / Land Officer'));
     });
 
-    test('Seed dataset integrity', () {
-      expect(SeedData.branches.length, greaterThanOrEqualTo(2));
-      expect(SeedData.users.length, greaterThanOrEqualTo(5));
-      expect(SeedData.properties.length, greaterThanOrEqualTo(6));
-      expect(SeedData.customers.length, greaterThanOrEqualTo(3));
-      expect(SeedData.sales.length, greaterThanOrEqualTo(1));
-    });
   });
 }

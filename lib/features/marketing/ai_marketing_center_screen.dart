@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
-import '../../repositories/seed_data.dart';
+
 import '../../widgets/stat_card.dart';
 
 class AIMarketingCenterScreen extends ConsumerStatefulWidget {

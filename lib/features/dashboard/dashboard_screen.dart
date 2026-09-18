@@ -8,6 +8,9 @@ import 'super_admin_dashboard.dart';
 import 'branch_manager_dashboard.dart';
 import 'sales_agent_dashboard.dart';
 import 'surveyor_dashboard.dart';
+import '../marketing/ai_marketing_center_screen.dart';
+import '../finance/finance_hub_screen.dart';
+import '../customers/customer_list_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -29,6 +32,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: _buildRoleDashboardBody(role),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() => _currentIndex = index);
           _navigateTab(role, index);
@@ -38,91 +44,199 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildRoleDashboardBody(String role) {
+  Widget _buildRoleDashboardBody(String rawRole) {
+    final role = rawRole.toUpperCase();
     switch (role) {
       case AppConstants.roleSuperAdmin:
+      case AppConstants.roleAdmin:
+      case AppConstants.roleManagement:
         return const SuperAdminDashboard();
+
       case AppConstants.roleBranchManager:
+      case AppConstants.roleSalesManager:
         return const BranchManagerDashboard();
+
       case AppConstants.roleSalesAgent:
+      case AppConstants.roleSecretary:
+      case AppConstants.roleFollowUpOfficer:
+      case AppConstants.roleFieldOfficer:
         return const SalesAgentDashboard();
+
       case AppConstants.roleSurveyor:
+      case AppConstants.roleSurveyAssistant:
+      case AppConstants.roleDocumentOfficer:
         return const SurveyorDashboard();
+
+      case AppConstants.roleMarketingManager:
+      case AppConstants.roleSocialMediaManager:
+        return const AIMarketingCenterScreen();
+
+      case AppConstants.roleAccountant:
+        return const FinanceHubScreen();
+
+      case AppConstants.roleCustomerSupport:
+        return const CustomerListScreen();
+
       default:
-        return const SuperAdminDashboard();
+        return const SalesAgentDashboard();
     }
   }
 
-  List<BottomNavigationBarItem> _buildRoleNavItems(String role) {
+  List<BottomNavigationBarItem> _buildRoleNavItems(String rawRole) {
+    final role = rawRole.toUpperCase();
     switch (role) {
       case AppConstants.roleSuperAdmin:
+      case AppConstants.roleAdmin:
+      case AppConstants.roleManagement:
         return const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.holiday_village_outlined), label: 'Properties'),
           BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Customers'),
           BottomNavigationBarItem(icon: Icon(Icons.grid_view_outlined), label: 'More Hub'),
         ];
+
       case AppConstants.roleBranchManager:
+      case AppConstants.roleSalesManager:
         return const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Branch HQ'),
           BottomNavigationBarItem(icon: Icon(Icons.holiday_village_outlined), label: 'Properties'),
           BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Customers'),
           BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: 'Leads'),
         ];
+
       case AppConstants.roleSalesAgent:
+      case AppConstants.roleSecretary:
+      case AppConstants.roleFollowUpOfficer:
+      case AppConstants.roleFieldOfficer:
         return const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'My Desk'),
           BottomNavigationBarItem(icon: Icon(Icons.holiday_village_outlined), label: 'Properties'),
           BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Customers'),
           BottomNavigationBarItem(icon: Icon(Icons.trending_up), label: 'My Leads'),
         ];
+
       case AppConstants.roleSurveyor:
+      case AppConstants.roleSurveyAssistant:
+      case AppConstants.roleDocumentOfficer:
         return const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Survey Desk'),
           BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), label: 'Survey Tasks'),
           BottomNavigationBarItem(icon: Icon(Icons.landscape_outlined), label: 'Land Plots'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ];
+
+      case AppConstants.roleMarketingManager:
+      case AppConstants.roleSocialMediaManager:
+        return const [
+          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_outlined), label: 'AI Marketing'),
+          BottomNavigationBarItem(icon: Icon(Icons.holiday_village_outlined), label: 'Properties'),
+          BottomNavigationBarItem(icon: Icon(Icons.trending_up), label: 'Leads'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        ];
+
+      case AppConstants.roleAccountant:
+        return const [
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Finance Hub'),
+          BottomNavigationBarItem(icon: Icon(Icons.point_of_sale), label: 'Sales'),
+          BottomNavigationBarItem(icon: Icon(Icons.assessment_outlined), label: 'Reports'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        ];
+
+      case AppConstants.roleCustomerSupport:
+        return const [
+          BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Customers'),
+          BottomNavigationBarItem(icon: Icon(Icons.trending_up), label: 'Leads'),
+          BottomNavigationBarItem(icon: Icon(Icons.sms_outlined), label: 'SMS Center'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        ];
+
       default:
         return const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'My Desk'),
           BottomNavigationBarItem(icon: Icon(Icons.holiday_village_outlined), label: 'Properties'),
           BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Customers'),
-          BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'More'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ];
     }
   }
 
-  void _navigateTab(String role, int index) {
-    if (index == 0) return; // Stay on dashboard
+  void _navigateTab(String rawRole, int index) {
+    if (index == 0) return; // Stay on primary dashboard screen
 
-    if (role == AppConstants.roleSuperAdmin) {
-      if (index == 1) context.push('/properties');
-      if (index == 2) context.push('/customers');
-      if (index == 3) _showSuperAdminMoreModal(context);
-    } else if (role == AppConstants.roleBranchManager) {
-      if (index == 1) context.push('/properties');
-      if (index == 2) context.push('/customers');
-      if (index == 3) context.push('/leads');
-    } else if (role == AppConstants.roleSalesAgent) {
-      if (index == 1) context.push('/properties');
-      if (index == 2) context.push('/customers');
-      if (index == 3) context.push('/leads');
-    } else if (role == AppConstants.roleSurveyor) {
-      if (index == 1) context.push('/surveys');
-      if (index == 2) context.push('/properties');
-      if (index == 3) context.push('/profile');
+    final role = rawRole.toUpperCase();
+    switch (role) {
+      case AppConstants.roleSuperAdmin:
+      case AppConstants.roleAdmin:
+      case AppConstants.roleManagement:
+        if (index == 1) context.push('/properties');
+        if (index == 2) context.push('/customers');
+        if (index == 3) _showSuperAdminMoreModal(context);
+        break;
+
+      case AppConstants.roleBranchManager:
+      case AppConstants.roleSalesManager:
+        if (index == 1) context.push('/properties');
+        if (index == 2) context.push('/customers');
+        if (index == 3) context.push('/leads');
+        break;
+
+      case AppConstants.roleSalesAgent:
+      case AppConstants.roleSecretary:
+      case AppConstants.roleFollowUpOfficer:
+      case AppConstants.roleFieldOfficer:
+        if (index == 1) context.push('/properties');
+        if (index == 2) context.push('/customers');
+        if (index == 3) context.push('/leads');
+        break;
+
+      case AppConstants.roleSurveyor:
+      case AppConstants.roleSurveyAssistant:
+      case AppConstants.roleDocumentOfficer:
+        if (index == 1) context.push('/surveys');
+        if (index == 2) context.push('/properties');
+        if (index == 3) context.push('/profile');
+        break;
+
+      case AppConstants.roleMarketingManager:
+      case AppConstants.roleSocialMediaManager:
+        if (index == 1) context.push('/properties');
+        if (index == 2) context.push('/leads');
+        if (index == 3) context.push('/profile');
+        break;
+
+      case AppConstants.roleAccountant:
+        if (index == 1) context.push('/sales');
+        if (index == 2) context.push('/reports');
+        if (index == 3) context.push('/profile');
+        break;
+
+      case AppConstants.roleCustomerSupport:
+        if (index == 1) context.push('/leads');
+        if (index == 2) context.push('/sms');
+        if (index == 3) context.push('/profile');
+        break;
+
+      default:
+        if (index == 1) context.push('/properties');
+        if (index == 2) context.push('/customers');
+        if (index == 3) context.push('/profile');
+        break;
     }
   }
 
   void _showSuperAdminMoreModal(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = screenWidth > 600 ? 4 : (screenWidth > 360 ? 3 : 2);
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(20),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.75),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -134,7 +248,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 16),
               GridView.count(
-                crossAxisCount: 3,
+                crossAxisCount: crossAxisCount,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 12,

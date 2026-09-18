@@ -5,7 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/lead_model.dart';
 import '../../repositories/lead_repository.dart';
-import '../../repositories/seed_data.dart';
+import '../dashboard/dashboard_providers.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
@@ -40,9 +40,15 @@ class _LeadListScreenState extends ConsumerState<LeadListScreen> {
   }
 
   void _showAddLeadModal() {
-    String selectedCustomer = SeedData.customers[0].id;
-    String selectedProperty = SeedData.properties[0].id;
-    String selectedAgent = SeedData.users.firstWhere((u) => u.role == 'sales_agent', orElse: () => SeedData.users[0]).uid;
+    final customers = ref.read(customersProvider).value ?? [];
+    final properties = ref.read(propertiesProvider).value ?? [];
+    final users = ref.read(usersProvider).value ?? [];
+    final branches = ref.read(branchesProvider).value ?? [];
+
+    String selectedCustomer = customers.isNotEmpty ? customers.first.id : '';
+    String selectedProperty = properties.isNotEmpty ? properties.first.id : '';
+    final agents = users.where((u) => u.role.toLowerCase() == 'sales_agent').toList();
+    String selectedAgent = agents.isNotEmpty ? agents.first.uid : (users.isNotEmpty ? users.first.uid : '');
     final notesCtrl = TextEditingController();
 
     showModalBottomSheet(
@@ -67,55 +73,59 @@ class _LeadListScreenState extends ConsumerState<LeadListScreen> {
               const Text('Select Customer:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedCustomer,
-                decoration: const InputDecoration(filled: true),
-                items: SeedData.customers.map((c) {
+                value: selectedCustomer.isNotEmpty ? selectedCustomer : null,
+                decoration: const InputDecoration(filled: true, hintText: 'Select Customer'),
+                items: customers.map((c) {
                   return DropdownMenuItem(value: c.id, child: Text('${c.fullName} (${c.phone})'));
                 }).toList(),
-                onChanged: (val) => selectedCustomer = val!,
+                onChanged: (val) { if (val != null) selectedCustomer = val; },
               ),
               const SizedBox(height: 12),
 
               const Text('Select Property of Interest:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedProperty,
-                decoration: const InputDecoration(filled: true),
-                items: SeedData.properties.map((p) {
+                value: selectedProperty.isNotEmpty ? selectedProperty : null,
+                decoration: const InputDecoration(filled: true, hintText: 'Select Property'),
+                items: properties.map((p) {
                   return DropdownMenuItem(value: p.id, child: Text('${p.propertyCode} - ${p.title}'));
                 }).toList(),
-                onChanged: (val) => selectedProperty = val!,
+                onChanged: (val) { if (val != null) selectedProperty = val; },
               ),
               const SizedBox(height: 12),
 
               const Text('Assign Sales Agent:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: selectedAgent,
-                decoration: const InputDecoration(filled: true),
-                items: SeedData.users.map((u) {
+                value: selectedAgent.isNotEmpty ? selectedAgent : null,
+                decoration: const InputDecoration(filled: true, hintText: 'Select Agent'),
+                items: users.map((u) {
                   return DropdownMenuItem(value: u.uid, child: Text('${u.fullName} (${AppConstants.getRoleLabel(u.role)})'));
                 }).toList(),
-                onChanged: (val) => selectedAgent = val!,
+                onChanged: (val) { if (val != null) selectedAgent = val; },
               ),
               const SizedBox(height: 12),
-              AppTextField(label: 'Lead Follow-up Notes', hint: 'Customer requested 5% discount...', controller: notesCtrl, maxLines: 2),
+              AppTextField(label: 'Lead Follow-up Notes', hint: 'Customer requested discount...', controller: notesCtrl, maxLines: 2),
               const SizedBox(height: 20),
 
               AppButton(
                 text: 'Create Lead Assignment',
                 onPressed: () async {
+                  if (selectedCustomer.isEmpty || selectedProperty.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select customer and property first.')));
+                    return;
+                  }
                   final newLead = LeadModel(
                     id: 'lead_${DateTime.now().millisecondsSinceEpoch}',
                     customerId: selectedCustomer,
                     propertyId: selectedProperty,
                     assignedAgentId: selectedAgent,
-                    branchId: SeedData.branches[0].id,
+                    branchId: branches.isNotEmpty ? branches.first.id : '',
                     source: 'Direct Client Inquiry',
                     status: AppConstants.leadNew,
                     notes: notesCtrl.text.trim(),
                     nextFollowUp: DateTime.now().add(const Duration(days: 2)),
-                    createdBy: 'user_admin',
+                    createdBy: selectedAgent,
                     createdAt: DateTime.now(),
                     updatedAt: DateTime.now(),
                   );
@@ -131,6 +141,7 @@ class _LeadListScreenState extends ConsumerState<LeadListScreen> {
       ),
     );
   }
+
 
   void _showStatusUpdateModal(LeadModel lead) {
     String selectedStatus = lead.status;
@@ -195,9 +206,17 @@ class _LeadListScreenState extends ConsumerState<LeadListScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final lead = _leads[index];
-                final cust = SeedData.customers.firstWhere((c) => c.id == lead.customerId, orElse: () => SeedData.customers[0]);
-                final prop = SeedData.properties.firstWhere((p) => p.id == lead.propertyId, orElse: () => SeedData.properties[0]);
-                final agent = SeedData.users.firstWhere((u) => u.uid == lead.assignedAgentId, orElse: () => SeedData.users[0]);
+
+                final customers = ref.read(customersProvider).value ?? [];
+                final properties = ref.read(propertiesProvider).value ?? [];
+                final users = ref.read(usersProvider).value ?? [];
+
+                final custMatches = customers.where((c) => c.id == lead.customerId).toList();
+                final custName = custMatches.isNotEmpty ? custMatches.first.fullName : 'Client';
+                final propMatches = properties.where((p) => p.id == lead.propertyId).toList();
+                final propTitle = propMatches.isNotEmpty ? '${propMatches.first.propertyCode} - ${propMatches.first.title}' : 'Property Inquiry';
+                final agentMatches = users.where((u) => u.uid == lead.assignedAgentId).toList();
+                final agentName = agentMatches.isNotEmpty ? agentMatches.first.fullName : 'Assigned Agent';
 
                 return Card(
                   child: Padding(
@@ -208,14 +227,16 @@ class _LeadListScreenState extends ConsumerState<LeadListScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(cust.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(custName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                             StatusBadge(status: lead.status),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('Property: ${prop.propertyCode} - ${prop.title}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        Text('Assigned Agent: ${agent.fullName}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('Interested in: $propTitle', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('Assigned Agent: $agentName', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+
                         const SizedBox(height: 6),
+
                         Text('Notes: ${lead.notes}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
                         const Divider(height: 20),
                         Row(

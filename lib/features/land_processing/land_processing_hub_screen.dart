@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../repositories/seed_data.dart';
+
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 
@@ -62,19 +62,25 @@ class _LandProcessingHubScreenState extends ConsumerState<LandProcessingHubScree
               children: [
                 const Text('Live Survey Receiver Hardware Telemetry', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 12),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.5,
-                  children: const [
-                    StatCard(title: 'Positioning Mode', value: 'RTK FIX', icon: Icons.gps_fixed_rounded, color: Color(0xFF10B981)),
-                    StatCard(title: 'Satellites Locked', value: '18 Satellites', icon: Icons.satellite_rounded, color: AppColors.accent),
-                    StatCard(title: 'Horizontal Precision (HDOP)', value: '0.82 m', icon: Icons.straighten_rounded, color: Colors.blue),
-                    StatCard(title: 'Calculated Accuracy', value: '±0.015 m', icon: Icons.precision_manufacturing_rounded, color: Colors.purple),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double width = constraints.maxWidth;
+                    final double ratio = width > 400 ? 1.5 : (width > 340 ? 1.2 : 1.1);
+                    return GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: ratio,
+                      children: const [
+                        StatCard(title: 'Positioning Mode', value: 'RTK FIX', icon: Icons.gps_fixed_rounded, color: Color(0xFF10B981)),
+                        StatCard(title: 'Satellites Locked', value: '18 Satellites', icon: Icons.satellite_rounded, color: AppColors.accent),
+                        StatCard(title: 'Horizontal Precision', value: '0.82 m HDOP', icon: Icons.straighten_rounded, color: Colors.blue),
+                        StatCard(title: 'Calculated Accuracy', value: '±0.015 m', icon: Icons.precision_manufacturing_rounded, color: Colors.purple),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
                 Card(

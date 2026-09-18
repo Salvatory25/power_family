@@ -49,6 +49,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController(text: 'Password123');
+    bool isPasswordObscured = true;
     String selectedRole = AppConstants.roleSalesAgent;
     String selectedBranch = branches.isNotEmpty ? branches[0].id : '';
     String selectedStatus = AppConstants.statusActive;
@@ -81,7 +83,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Administrator registration for new employees and role assignment.',
+                    'Administrator registration for new employees, password creation, and role assignment.',
                     style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 16),
@@ -90,6 +92,27 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   AppTextField(label: 'Email Address', hint: 'e.g. john@powerfamily.co.tz', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
                   const SizedBox(height: 12),
                   AppTextField(label: 'Phone Number', hint: '+255 7XX XXX XXX', controller: phoneCtrl, keyboardType: TextInputType.phone),
+                  const SizedBox(height: 12),
+
+                  // Initial Password Set By Admin
+                  AppTextField(
+                    label: 'Initial Password for User',
+                    hint: 'e.g. Password123',
+                    controller: passwordCtrl,
+                    obscureText: isPasswordObscured,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        isPasswordObscured ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                        color: AppColors.textMuted,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setModalState(() {
+                          isPasswordObscured = !isPasswordObscured;
+                        });
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 14),
 
                   const Text('Assign System Role:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
@@ -132,9 +155,9 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   AppButton(
                     text: 'Create Staff Account',
                     onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty) {
+                      if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty || passwordCtrl.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please fill in Full Name and Email.')),
+                          const SnackBar(content: Text('Please fill in Full Name, Email, and Password.')),
                         );
                         return;
                       }
@@ -152,7 +175,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                       );
 
                       final repo = ref.read(userRepositoryProvider);
-                      await repo.createUser(newStaff);
+                      await repo.createUser(newStaff, password: passwordCtrl.text.trim());
 
                       ref.invalidate(usersProvider);
                       ref.invalidate(branchesProvider);
@@ -160,11 +183,12 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                       if (context.mounted) {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Staff account created for ${newStaff.fullName}')),
+                          SnackBar(content: Text('Staff account created for ${newStaff.fullName} (${AppConstants.getRoleLabel(selectedRole)}) with password: ${passwordCtrl.text.trim()}')),
                         );
                       }
                     },
                   ),
+
                 ],
               ),
             ),
@@ -451,28 +475,80 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                 'Role: ${AppConstants.getRoleLabel(u.role)}\nBranch: $branchName • ${u.email}',
                 style: const TextStyle(fontSize: 12),
               ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  StatusBadge(status: u.status),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        onTap: () => _showEditUserModal(u, branches),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          child: Text('Edit', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                  if (isPendingTab)
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final updated = u.copyWith(status: AppConstants.statusActive);
+                        final repo = ref.read(userRepositoryProvider);
+                        await repo.updateUser(updated);
+                        ref.invalidate(usersProvider);
+                        ref.invalidate(branchesProvider);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Account approved for ${u.fullName}!')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.statusAvailable,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, size: 14),
+                      label: const Text('Approve', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    )
+                  else
+                    StatusBadge(status: u.status, fontSize: 10, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2)),
+                  const SizedBox(width: 4),
+                  PopupMenuButton<String>(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
+                    onSelected: (val) {
+                      if (val == 'approve') {
+                        final updated = u.copyWith(status: AppConstants.statusActive);
+                        ref.read(userRepositoryProvider).updateUser(updated);
+                        ref.invalidate(usersProvider);
+                        ref.invalidate(branchesProvider);
+                      }
+                      if (val == 'edit') _showEditUserModal(u, branches);
+                      if (val == 'delete') _confirmDeleteUser(u);
+                    },
+                    itemBuilder: (ctx) => [
+                      if (isPendingTab)
+                        const PopupMenuItem(
+                          value: 'approve',
+                          child: Row(
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 16, color: AppColors.statusAvailable),
+                              SizedBox(width: 8),
+                              Text('Approve Account'),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 16, color: AppColors.primary),
+                            SizedBox(width: 8),
+                            Text('Edit Staff'),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      InkWell(
-                        onTap: () => _confirmDeleteUser(u),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                          child: Text('Delete', style: TextStyle(fontSize: 11, color: AppColors.statusSold, fontWeight: FontWeight.bold)),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 16, color: AppColors.statusSold),
+                            SizedBox(width: 8),
+                            Text('Delete Account', style: TextStyle(color: AppColors.statusSold)),
+                          ],
                         ),
                       ),
                     ],

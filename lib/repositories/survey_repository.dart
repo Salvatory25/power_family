@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/survey_task_model.dart';
-import 'seed_data.dart';
 
 class SurveyRepository {
   SupabaseClient? get _supabase {
@@ -46,6 +45,7 @@ class SurveyRepository {
       }
     } catch (_) {}
 
+
     return list;
   }
 
@@ -73,15 +73,10 @@ class SurveyRepository {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
-        SeedData.surveyTasks.add(newTask);
         return newTask;
       }
     } catch (_) {}
-
-    final newId = 'survey_${DateTime.now().millisecondsSinceEpoch}';
-    final newTask = SurveyTaskModel.fromMap(task.toMap(), newId);
-    SeedData.surveyTasks.add(newTask);
-    return newTask;
+    throw Exception('Supabase client not initialized or creation failed');
   }
 
   Future<void> updateSurveyTaskStatus(String taskId, String newStatus, String notes) async {
@@ -95,21 +90,6 @@ class SurveyRepository {
         }).eq('id', taskId);
       }
     } catch (_) {}
-    final idx = SeedData.surveyTasks.indexWhere((t) => t.id == taskId);
-    if (idx != -1) {
-      final old = SeedData.surveyTasks[idx];
-      SeedData.surveyTasks[idx] = SurveyTaskModel(
-        id: old.id,
-        propertyId: old.propertyId,
-        surveyorId: old.surveyorId,
-        branchId: old.branchId,
-        status: newStatus,
-        deadline: old.deadline,
-        notes: notes,
-        documents: old.documents,
-        createdAt: old.createdAt,
-        updatedAt: DateTime.now(),
-      );
-    }
+
   }
 }

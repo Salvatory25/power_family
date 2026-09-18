@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/activity_model.dart';
-import 'seed_data.dart';
 
 class ActivityRepository {
   SupabaseClient? get _supabase {
@@ -42,6 +41,7 @@ class ActivityRepository {
       }
     } catch (_) {}
 
+
     return list;
   }
 
@@ -60,6 +60,5 @@ class ActivityRepository {
         });
       }
     } catch (_) {}
-    SeedData.activities.insert(0, activity);
   }
 }

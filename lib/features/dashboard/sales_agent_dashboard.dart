@@ -5,7 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/customer_model.dart';
-import '../../repositories/seed_data.dart';
+
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
@@ -82,43 +82,49 @@ class SalesAgentDashboard extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
 
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.3,
-            children: [
-              StatCard(
-                title: 'Assigned Leads',
-                value: assignedLeads.length.toString(),
-                icon: Icons.trending_up,
-                color: AppColors.accent,
-                onTap: () => context.push('/leads'),
-              ),
-              StatCard(
-                title: 'My Customers',
-                value: assignedCustomers.length.toString(),
-                icon: Icons.people_alt_outlined,
-                color: AppColors.primary,
-                onTap: () => context.push('/customers'),
-              ),
-              StatCard(
-                title: 'Assigned Properties',
-                value: assignedProps.length.toString(),
-                icon: Icons.holiday_village_outlined,
-                color: AppColors.statusUnderProcess,
-                onTap: () => context.push('/properties'),
-              ),
-              StatCard(
-                title: 'My Deals Closed',
-                value: mySales.length.toString(),
-                icon: Icons.check_circle_outline,
-                color: AppColors.statusAvailable,
-                onTap: () => context.push('/sales'),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double width = constraints.maxWidth;
+              final double ratio = width > 400 ? 1.3 : (width > 340 ? 1.15 : 1.05);
+              return GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: ratio,
+                children: [
+                  StatCard(
+                    title: 'Assigned Leads',
+                    value: assignedLeads.length.toString(),
+                    icon: Icons.trending_up,
+                    color: AppColors.accent,
+                    onTap: () => context.push('/leads'),
+                  ),
+                  StatCard(
+                    title: 'My Customers',
+                    value: assignedCustomers.length.toString(),
+                    icon: Icons.people_alt_outlined,
+                    color: AppColors.primary,
+                    onTap: () => context.push('/customers'),
+                  ),
+                  StatCard(
+                    title: 'Assigned Properties',
+                    value: assignedProps.length.toString(),
+                    icon: Icons.holiday_village_outlined,
+                    color: AppColors.statusUnderProcess,
+                    onTap: () => context.push('/properties'),
+                  ),
+                  StatCard(
+                    title: 'My Deals Closed',
+                    value: mySales.length.toString(),
+                    icon: Icons.check_circle_outline,
+                    color: AppColors.statusAvailable,
+                    onTap: () => context.push('/sales'),
+                  ),
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 24),
@@ -146,24 +152,10 @@ class SalesAgentDashboard extends ConsumerWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final lead = assignedLeads[index];
-              final cust = SeedData.customers.firstWhere(
-                (c) => c.id == lead.customerId,
-                orElse: () => CustomerModel(
-                  id: '',
-                  fullName: 'Customer',
-                  phone: '',
-                  email: '',
-                  address: '',
-                  notes: '',
-                  interestedPropertyTypes: [],
-                  budget: 0,
-                  status: 'new',
-                  branchId: '',
-                  createdBy: '',
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                ),
-              );
+              final custMatching = allCustomers.where((c) => c.id == lead.customerId).toList();
+              final custName = custMatching.isNotEmpty ? custMatching.first.fullName : 'Client';
+              final custPhone = custMatching.isNotEmpty ? custMatching.first.phone : '';
+
 
               return Card(
                 child: ListTile(
@@ -171,7 +163,7 @@ class SalesAgentDashboard extends ConsumerWidget {
                     backgroundColor: AppColors.surfaceVariant,
                     child: Icon(Icons.phone_callback_outlined, color: AppColors.accent, size: 20),
                   ),
-                  title: Text(cust.fullName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  title: Text(custName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   subtitle: Text(
                     'Notes: ${lead.notes}\nFollow-up: ${Formatters.formatDate(lead.nextFollowUp)}',
                     style: const TextStyle(fontSize: 12),

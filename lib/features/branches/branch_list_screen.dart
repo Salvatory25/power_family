@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/tanzania_locations.dart';
 import '../../models/branch_model.dart';
 import '../../repositories/branch_repository.dart';
-import '../../repositories/seed_data.dart';
+
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/confirm_dialog.dart';
@@ -23,84 +24,157 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
   void _showBranchForm([BranchModel? branch]) {
     final nameCtrl = TextEditingController(text: branch?.name ?? '');
     final codeCtrl = TextEditingController(text: branch?.code ?? '');
-    final locCtrl = TextEditingController(text: branch?.location ?? '');
+    final streetCtrl = TextEditingController(
+      text: branch != null ? branch.location.split('•').first.trim() : '',
+    );
     final phoneCtrl = TextEditingController(text: branch?.phone ?? '');
     final emailCtrl = TextEditingController(text: branch?.email ?? '');
+
+    String? selectedRegion = 'Dar es Salaam Region';
+    String? selectedDistrict = 'Kinondoni Municipal';
+
+    if (branch != null && branch.location.contains(',')) {
+      final parts = branch.location.split(',');
+      if (parts.length >= 2) {
+        final regCandidate = parts.last.trim();
+        final distCandidate = parts[parts.length - 2].trim();
+        if (TanzaniaLocations.allRegions.contains(regCandidate)) {
+          selectedRegion = regCandidate;
+        }
+        final districts = TanzaniaLocations.getDistricts(selectedRegion);
+        if (districts.contains(distCandidate)) {
+          selectedDistrict = distCandidate;
+        }
+      }
+    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                branch == null ? 'Create New Branch' : 'Edit Branch Details',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final currentDistricts = TanzaniaLocations.getDistricts(selectedRegion);
+          final validDistrict = currentDistricts.contains(selectedDistrict)
+              ? selectedDistrict
+              : (currentDistricts.isNotEmpty ? currentDistricts.first : null);
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    branch == null ? 'Create New Branch' : 'Edit Branch Details',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(label: 'Branch Name', hint: 'e.g. Kinondoni Sub-Branch', controller: nameCtrl),
+                  const SizedBox(height: 12),
+                  AppTextField(label: 'Branch Code', hint: 'e.g. PF-KIN', controller: codeCtrl),
+                  const SizedBox(height: 14),
+
+                  const Text('Select Region:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedRegion,
+                    decoration: const InputDecoration(filled: true, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                    items: TanzaniaLocations.allRegions.map((reg) {
+                      return DropdownMenuItem(value: reg, child: Text(reg));
+                    }).toList(),
+                    onChanged: (val) {
+                      setModalState(() {
+                        selectedRegion = val;
+                        final newDistricts = TanzaniaLocations.getDistricts(val);
+                        selectedDistrict = newDistricts.isNotEmpty ? newDistricts.first : null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+
+                  const Text('Select District / Municipal:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: validDistrict,
+                    decoration: const InputDecoration(filled: true, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                    items: currentDistricts.map((dist) {
+                      return DropdownMenuItem(value: dist, child: Text(dist));
+                    }).toList(),
+                    onChanged: (val) {
+                      setModalState(() {
+                        selectedDistrict = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+
+                  AppTextField(
+                    label: 'Street / Physical Address (Optional)',
+                    hint: 'e.g. Sam Nujoma Road, Plot 42',
+                    controller: streetCtrl,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(label: 'Phone Number', hint: '+255 7XX XXX XXX', controller: phoneCtrl, keyboardType: TextInputType.phone),
+                  const SizedBox(height: 12),
+                  AppTextField(label: 'Email', hint: 'branch@powerfamily.co.tz', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
+                  const SizedBox(height: 20),
+                  AppButton(
+                    text: branch == null ? 'Save Branch' : 'Update Branch',
+                    onPressed: () async {
+                      if (nameCtrl.text.isEmpty || codeCtrl.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Branch Name and Code are required.')));
+                        return;
+                      }
+
+                      final String fullLocation = streetCtrl.text.trim().isNotEmpty
+                          ? '${streetCtrl.text.trim()}, ${validDistrict ?? ""}, ${selectedRegion ?? ""}'
+                          : '${validDistrict ?? ""}, ${selectedRegion ?? ""}';
+
+                      final repo = ref.read(branchRepositoryProvider);
+                      if (branch == null) {
+                        final newB = BranchModel(
+                          id: 'branch_${DateTime.now().millisecondsSinceEpoch}',
+                          name: nameCtrl.text.trim(),
+                          code: codeCtrl.text.trim(),
+                          location: fullLocation,
+                          phone: phoneCtrl.text.trim(),
+                          email: emailCtrl.text.trim(),
+                          status: AppConstants.branchActive,
+                          createdAt: DateTime.now(),
+                          updatedAt: DateTime.now(),
+                        );
+                        await repo.createBranch(newB);
+                      } else {
+                        final updated = branch.copyWith(
+                          name: nameCtrl.text.trim(),
+                          code: codeCtrl.text.trim(),
+                          location: fullLocation,
+                          phone: phoneCtrl.text.trim(),
+                          email: emailCtrl.text.trim(),
+                        );
+                        await repo.updateBranch(updated);
+                      }
+                      ref.invalidate(branchesProvider);
+                      if (context.mounted) {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(branch == null ? 'Branch created successfully.' : 'Branch updated successfully.')),
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              AppTextField(label: 'Branch Name', hint: 'e.g. Dodoma Regional Office', controller: nameCtrl),
-              const SizedBox(height: 12),
-              AppTextField(label: 'Branch Code', hint: 'e.g. PF-DDM', controller: codeCtrl),
-              const SizedBox(height: 12),
-              AppTextField(label: 'Location / Physical Address', hint: 'Street, District, City', controller: locCtrl),
-              const SizedBox(height: 12),
-              AppTextField(label: 'Phone Number', hint: '+255 7XX XXX XXX', controller: phoneCtrl, keyboardType: TextInputType.phone),
-              const SizedBox(height: 12),
-              AppTextField(label: 'Email', hint: 'branch@powerfamily.co.tz', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 20),
-              AppButton(
-                text: branch == null ? 'Save Branch' : 'Update Branch',
-                onPressed: () async {
-                  if (nameCtrl.text.isEmpty || codeCtrl.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Branch Name and Code are required.')));
-                    return;
-                  }
-                  final repo = ref.read(branchRepositoryProvider);
-                  if (branch == null) {
-                    final newB = BranchModel(
-                      id: 'branch_${DateTime.now().millisecondsSinceEpoch}',
-                      name: nameCtrl.text.trim(),
-                      code: codeCtrl.text.trim(),
-                      location: locCtrl.text.trim(),
-                      phone: phoneCtrl.text.trim(),
-                      email: emailCtrl.text.trim(),
-                      status: AppConstants.branchActive,
-                      createdAt: DateTime.now(),
-                      updatedAt: DateTime.now(),
-                    );
-                    await repo.createBranch(newB);
-                  } else {
-                    final updated = branch.copyWith(
-                      name: nameCtrl.text.trim(),
-                      code: codeCtrl.text.trim(),
-                      location: locCtrl.text.trim(),
-                      phone: phoneCtrl.text.trim(),
-                      email: emailCtrl.text.trim(),
-                    );
-                    await repo.updateBranch(updated);
-                  }
-                  ref.invalidate(branchesProvider);
-                  if (context.mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(branch == null ? 'Branch created successfully.' : 'Branch updated successfully.')),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
