@@ -50,16 +50,17 @@ class PropertyRepository {
     String branchUuid,
   ) async {
     try {
-      final res = await supabase.from('projects').select('id').limit(1);
+      final res = await supabase.from('projects').select('id').eq('branch_id', branchUuid).limit(1);
       if (res != null && (res as List).isNotEmpty) {
         return res.first['id'].toString();
       }
+      final uniqueCode = 'PRJ-\${branchUuid.substring(0, 8).toUpperCase()}';
       final inserted = await supabase
           .from('projects')
           .insert({
             'branch_id': branchUuid,
-            'project_code': 'PRJ-PF-001',
-            'name': 'Power Family Main Project',
+            'project_code': uniqueCode,
+            'name': 'Default Project',
             'region': 'Dar es Salaam',
             'district': 'Kigamboni',
             'total_area_sqm': 50000.0,
@@ -83,6 +84,9 @@ class PropertyRepository {
     try {
       final supabase = _supabase;
       if (supabase != null) {
+        print('=================================');
+        print('DEBUG getProperties: Called with branchId: $branchId');
+        print('=================================');
         var query = supabase.from('plots').select();
         if (branchId != null && branchId.isNotEmpty && branchId.length == 36) {
           query = query.eq('branch_id', branchId);
@@ -91,11 +95,12 @@ class PropertyRepository {
           query = query.eq('availability_status', status.toUpperCase());
         }
         final response = await query;
+        print('DEBUG getProperties: query response length: \${(response as List).length}');
         if (response != null && (response as List).isNotEmpty) {
           final List<PropertyModel> mappedList = [];
           for (final rawItem in (response as List)) {
             final map = rawItem as Map<String, dynamic>;
-            final meta = map['metadata'] as Map<String, dynamic>? ?? {};
+            final meta = map['survey_data'] as Map<String, dynamic>? ?? {};
 
             mappedList.add(
               PropertyModel(
@@ -151,9 +156,11 @@ class PropertyRepository {
           }
           list = mappedList;
         }
+      } else {
+        print('DEBUG: getProperties - supabase client is null!');
       }
-    } catch (e) {
-      print('Error loading properties: $e');
+    } catch (e, st) {
+      print('DEBUG: Error loading properties: $e\n$st');
     }
 
 
@@ -187,10 +194,14 @@ class PropertyRepository {
     try {
       final supabase = _supabase;
       if (supabase != null) {
+        print('=================================');
+        print('DEBUG createProperty: requested branchId is: ${property.branchId}');
         final branchUuid = await _resolveBranchUuid(
           supabase,
           property.branchId,
         );
+        print('DEBUG createProperty: resolved branch UUID is: $branchUuid');
+        print('=================================');
         if (branchUuid == null)
           throw Exception('Branch UUID resolution failed');
         final projectUuid = await _resolveProjectUuid(supabase, branchUuid);
@@ -223,7 +234,7 @@ class PropertyRepository {
               'availability_status': property.status.toUpperCase(),
               'images': property.images,
               'plot_type': property.type,
-              'metadata': {
+              'survey_data': {
                 'title': property.title,
                 'bedrooms': property.bedrooms,
                 'bathrooms': property.bathrooms,
@@ -271,6 +282,17 @@ class PropertyRepository {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
+
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? created.createdBy,
+          'actor_name': currentUser != null ? 'Staff' : 'System',
+          'action_type': 'PROPERTY_CREATED',
+          'target_entity_type': 'Property',
+          'target_entity_id': created.id,
+          'description': 'Added new \${created.type} property (\${created.propertyCode})',
+          'branch_id': branchUuid,
+        });
       }
     } catch (e) {
       print('Error creating property in Supabase: $e');
@@ -291,6 +313,17 @@ class PropertyRepository {
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', propertyId);
+            
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? 'system',
+          'actor_name': currentUser != null ? 'Staff' : 'System',
+          'action_type': 'PROPERTY_STATUS_UPDATED',
+          'target_entity_type': 'Property',
+          'target_entity_id': propertyId,
+          'description': 'Property status updated to \$newStatus',
+          'branch_id': 'branch_dar',
+        });
       }
     } catch (e) {
       print('Error updating property status: $e');
@@ -315,7 +348,7 @@ class PropertyRepository {
           'availability_status': property.status.toUpperCase(),
           'updated_at': DateTime.now().toIso8601String(),
           'plot_type': property.type,
-          'metadata': {
+          'survey_data': {
             'title': property.title,
             'bedrooms': property.bedrooms,
             'bathrooms': property.bathrooms,
@@ -334,6 +367,17 @@ class PropertyRepository {
         }
 
         await supabase.from('plots').update(updateData).eq('id', property.id);
+        
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? 'system',
+          'actor_name': currentUser != null ? 'Staff' : 'System',
+          'action_type': 'PROPERTY_UPDATED',
+          'target_entity_type': 'Property',
+          'target_entity_id': property.id,
+          'description': 'Property \${property.propertyCode} was edited',
+          'branch_id': property.branchId.isNotEmpty ? property.branchId : 'branch_dar',
+        });
       }
     } catch (e) {
       print('Error updating property: $e');

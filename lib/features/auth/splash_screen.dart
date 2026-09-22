@@ -43,6 +43,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
           context.go('/login');
         } else if (user.status != AppConstants.statusActive) {
           context.go('/account-status');
+        } else if (user.role == AppConstants.roleCustomer) {
+          context.go('/customer-dashboard');
         } else {
           context.go('/dashboard');
         }

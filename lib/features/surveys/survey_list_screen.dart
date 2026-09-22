@@ -6,6 +6,7 @@ import '../../core/utils/formatters.dart';
 import '../../models/survey_task_model.dart';
 import '../../repositories/survey_repository.dart';
 import '../dashboard/dashboard_providers.dart';
+import '../auth/auth_controller.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
@@ -26,13 +27,18 @@ class _SurveyListScreenState extends ConsumerState<SurveyListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTasks();
+    Future.microtask(() => _loadTasks());
   }
 
   Future<void> _loadTasks() async {
     setState(() => _isLoading = true);
+    final user = ref.read(authControllerProvider).value;
+    final isAdmin = user?.role.toUpperCase() == AppConstants.roleSuperAdmin || 
+                    user?.role.toUpperCase() == AppConstants.roleSystemAdmin;
+    final filterBranchId = isAdmin ? null : user?.branchId;
+
     final repo = ref.read(surveyRepositoryProvider);
-    final list = await repo.getSurveyTasks();
+    final list = await repo.getSurveyTasks(branchId: filterBranchId);
     setState(() {
       _tasks = list;
       _isLoading = false;

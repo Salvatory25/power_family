@@ -76,4 +76,15 @@ class AuthController extends StateNotifier<AsyncValue<UserModel?>> {
     _repository.switchDevRole(role);
     state = AsyncValue.data(_repository.currentUser);
   }
+
+  Future<bool> updateProfilePicture(List<int> bytes, String extension) async {
+    try {
+      final user = await _repository.updateProfilePicture(bytes, extension);
+      state = AsyncValue.data(user);
+      return true;
+    } catch (e, st) {
+      print('Error updating profile picture: $e');
+      throw e;
+    }
+  }
 }

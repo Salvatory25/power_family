@@ -27,6 +27,8 @@ import '../../features/properties/digital_plot_map_screen.dart';
 import '../../features/finance/finance_hub_screen.dart';
 import '../../features/land_processing/land_processing_hub_screen.dart';
 import '../../features/marketing/ai_marketing_center_screen.dart';
+import '../../features/customer_dashboard/customer_dashboard_screen.dart';
+import '../../features/customer_dashboard/customer_property_details_screen.dart';
 import '../../models/property_model.dart';
 import '../constants/app_constants.dart';
 
@@ -57,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/customer-dashboard',
+        builder: (context, state) => const CustomerDashboardScreen(),
       ),
       GoRoute(
         path: '/branches',
@@ -102,6 +108,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final id = state.pathParameters['id'] ?? 'prop_kiwanja_1';
           return PropertyDetailScreen(propertyId: id);
+        },
+      ),
+      GoRoute(
+        path: '/customer-properties/details',
+        builder: (context, state) {
+          final property = state.extra as PropertyModel;
+          return CustomerPropertyDetailsScreen(property: property);
         },
       ),
       GoRoute(

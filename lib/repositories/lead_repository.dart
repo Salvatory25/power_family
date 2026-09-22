@@ -107,6 +107,17 @@ class LeadRepository {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
+        
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? created.createdBy,
+          'actor_name': currentUser != null ? 'Staff' : 'System',
+          'action_type': 'LEAD_CREATED',
+          'target_entity_type': 'Lead',
+          'target_entity_id': created.id,
+          'description': 'Added new lead from \${created.source}',
+          'branch_id': branchUuid,
+        });
       }
     } catch (e) {
       print('Error creating lead in Supabase: $e');
@@ -124,6 +135,17 @@ class LeadRepository {
           'status': newStatus.toUpperCase(),
           'updated_at': DateTime.now().toIso8601String(),
         }).eq('id', leadId);
+        
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? 'system',
+          'actor_name': currentUser != null ? 'Staff' : 'System',
+          'action_type': 'LEAD_STATUS_UPDATED',
+          'target_entity_type': 'Lead',
+          'target_entity_id': leadId,
+          'description': 'Lead status updated to \$newStatus',
+          'branch_id': 'branch_dar',
+        });
       }
     } catch (e) {
       print('Error updating lead status: $e');

@@ -6,6 +6,7 @@ import '../../core/utils/formatters.dart';
 import '../../models/sale_model.dart';
 import '../../repositories/sales_repository.dart';
 import '../dashboard/dashboard_providers.dart';
+import '../auth/auth_controller.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
@@ -26,13 +27,18 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSales();
+    Future.microtask(() => _loadSales());
   }
 
   Future<void> _loadSales() async {
     setState(() => _isLoading = true);
+    final user = ref.read(authControllerProvider).value;
+    final isAdmin = user?.role.toUpperCase() == AppConstants.roleSuperAdmin || 
+                    user?.role.toUpperCase() == AppConstants.roleSystemAdmin;
+    final filterBranchId = isAdmin ? null : user?.branchId;
+
     final repo = ref.read(salesRepositoryProvider);
-    final list = await repo.getSales();
+    final list = await repo.getSales(branchId: filterBranchId);
     setState(() {
       _sales = list;
       _isLoading = false;

@@ -6,6 +6,7 @@ import '../../core/utils/formatters.dart';
 import '../../models/lead_model.dart';
 import '../../repositories/lead_repository.dart';
 import '../dashboard/dashboard_providers.dart';
+import '../auth/auth_controller.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
@@ -26,13 +27,18 @@ class _LeadListScreenState extends ConsumerState<LeadListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLeads();
+    Future.microtask(() => _loadLeads());
   }
 
   Future<void> _loadLeads() async {
     setState(() => _isLoading = true);
+    final user = ref.read(authControllerProvider).value;
+    final isAdmin = user?.role.toUpperCase() == AppConstants.roleSuperAdmin || 
+                    user?.role.toUpperCase() == AppConstants.roleSystemAdmin;
+    final filterBranchId = isAdmin ? null : user?.branchId;
+
     final repo = ref.read(leadRepositoryProvider);
-    final list = await repo.getLeads();
+    final list = await repo.getLeads(branchId: filterBranchId);
     setState(() {
       _leads = list;
       _isLoading = false;

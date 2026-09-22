@@ -8,6 +8,7 @@ import '../../models/property_model.dart';
 import '../../repositories/property_repository.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/empty_state.dart';
+import '../auth/auth_controller.dart';
 
 final propertyRepositoryProvider = Provider((ref) => PropertyRepository());
 
@@ -30,7 +31,8 @@ class _PropertyListScreenState extends ConsumerState<PropertyListScreen> with Si
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() => _loadProperties());
-    _loadProperties();
+    // Use Future.microtask to allow providers to be read after init
+    Future.microtask(() => _loadProperties());
   }
 
   Future<void> _loadProperties() async {
@@ -40,11 +42,17 @@ class _PropertyListScreenState extends ConsumerState<PropertyListScreen> with Si
     if (_tabController.index == 2) typeFilter = AppConstants.typeNyumba;
     if (_tabController.index == 3) typeFilter = AppConstants.typeGari;
 
+    final user = ref.read(authControllerProvider).value;
+    final isAdmin = user?.role.toUpperCase() == AppConstants.roleSuperAdmin || 
+                    user?.role.toUpperCase() == AppConstants.roleSystemAdmin;
+    final filterBranchId = isAdmin ? null : user?.branchId;
+
     final repo = ref.read(propertyRepositoryProvider);
     final list = await repo.getProperties(
       type: typeFilter,
       status: _selectedStatusFilter,
       searchQuery: _searchController.text,
+      branchId: filterBranchId,
     );
 
     setState(() {

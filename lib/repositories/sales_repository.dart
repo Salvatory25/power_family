@@ -40,14 +40,15 @@ class SalesRepository {
 
   Future<String?> _resolveProjectUuid(SupabaseClient supabase, String branchUuid) async {
     try {
-      final res = await supabase.from('projects').select('id').limit(1);
+      final res = await supabase.from('projects').select('id').eq('branch_id', branchUuid).limit(1);
       if (res != null && (res as List).isNotEmpty) {
         return res.first['id'].toString();
       }
+      final uniqueCode = 'PRJ-\${branchUuid.substring(0, 8).toUpperCase()}';
       final inserted = await supabase.from('projects').insert({
         'branch_id': branchUuid,
-        'project_code': 'PRJ-PF-001',
-        'name': 'Power Family Main Project',
+        'project_code': uniqueCode,
+        'name': 'Default Project',
         'region': 'Dar es Salaam',
         'district': 'Kigamboni',
         'total_area_sqm': 50000.0,
@@ -177,14 +178,26 @@ class SalesRepository {
           branchId: branchUuid,
           amount: sale.amount,
           paymentStatus: sale.paymentStatus,
-          saleStatus: sale.saleStatus,
-          notes: sale.notes,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
+          notes: sale.notes,
+          saleStatus: sale.saleStatus,
         );
+
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? 'system',
+          'actor_name': currentUser != null ? 'Staff' : 'System',
+          'action_type': 'SALE_CREATED',
+          'target_entity_type': 'Sale',
+          'target_entity_id': created.id,
+          'description': 'Closed a sale worth TZS \${sale.amount} for plot \$plotUuid',
+          'branch_id': branchUuid,
+        });
+
       }
     } catch (e) {
-      print('Error recording sale in Supabase: $e');
+      print('Error creating sale in Supabase: $e');
     }
 
 

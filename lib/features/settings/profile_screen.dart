@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/branch_model.dart';
@@ -9,11 +10,46 @@ import '../../widgets/status_badge.dart';
 import '../auth/auth_controller.dart';
 import '../dashboard/dashboard_providers.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _isUploading = false;
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+
+    if (pickedFile != null) {
+      setState(() => _isUploading = true);
+      try {
+        final bytes = await pickedFile.readAsBytes();
+        final extension = pickedFile.name.split('.').last;
+        final success = await ref.read(authControllerProvider.notifier).updateProfilePicture(bytes, extension);
+        
+        if (mounted) {
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated!')));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update profile picture.')));
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).value;
     final branches = ref.watch(branchesProvider).value ?? [];
     final branch = branches.firstWhere(
@@ -33,7 +69,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Staff Profile'),
+        title: Text(user == null ? 'Wasifu' : 'Wasifu Wangu'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -41,24 +77,74 @@ class ProfileScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Profile Header Avatar
-            CircleAvatar(
-              radius: 44,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                user?.fullName.isEmpty ?? true ? 'U' : user!.fullName.substring(0, 1).toUpperCase(),
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
+            Stack(
+              children: [
+                GestureDetector(
+                  onTap: _isUploading ? null : _pickAndUploadImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primary, AppColors.accent],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 44,
+                      backgroundColor: AppColors.background,
+                      backgroundImage: (user?.photoUrl != null && user!.photoUrl!.isNotEmpty)
+                          ? NetworkImage(user.photoUrl!)
+                          : null,
+                      child: _isUploading
+                          ? const CircularProgressIndicator(color: AppColors.accent)
+                          : (user?.photoUrl == null || user!.photoUrl!.isEmpty)
+                              ? Text(
+                                  (user?.fullName ?? 'U').substring(0, 1).toUpperCase(),
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                )
+                              : null,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: GestureDetector(
+                    onTap: _isUploading ? null : _pickAndUploadImage,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Icon(Icons.camera_alt, size: 18, color: AppColors.primary),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 14),
 
             Text(
-              user?.fullName ?? 'Staff Member',
+              user?.fullName ?? 'Mgeni (Guest)',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 4),
 
             Text(
-              user?.email ?? 'staff@powerfamily.co.tz',
+              user?.email ?? 'Tafadhali ingia katika akaunti yako',
               style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 10),
@@ -83,24 +169,31 @@ class ProfileScreen extends ConsumerWidget {
 
             const SizedBox(height: 24),
 
-            // Actions
-            AppButton(
-              text: 'Change Password',
-              isOutlined: true,
-              icon: Icons.lock_reset,
-              onPressed: () => context.push('/forgot-password'),
-            ),
-            const SizedBox(height: 12),
+            if (user != null) ...[
+              AppButton(
+                text: 'Change Password',
+                isOutlined: true,
+                icon: Icons.lock_reset,
+                onPressed: () => context.push('/forgot-password'),
+              ),
+              const SizedBox(height: 12),
 
-            AppButton(
-              text: 'Logout of Account',
-              backgroundColor: AppColors.statusSold,
-              icon: Icons.logout,
-              onPressed: () async {
-                await ref.read(authControllerProvider.notifier).logout();
-                if (context.mounted) context.go('/login');
-              },
-            ),
+              AppButton(
+                text: 'Logout of Account',
+                backgroundColor: AppColors.statusSold,
+                icon: Icons.logout,
+                onPressed: () async {
+                  await ref.read(authControllerProvider.notifier).logout();
+                  if (context.mounted) context.go('/login');
+                },
+              ),
+            ] else ...[
+              AppButton(
+                text: 'Ingia (Login)',
+                icon: Icons.login,
+                onPressed: () => context.push('/login'),
+              ),
+            ],
           ],
         ),
       ),

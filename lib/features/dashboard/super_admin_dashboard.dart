@@ -83,14 +83,19 @@ class SuperAdminDashboard extends ConsumerWidget {
                                 child: CircleAvatar(
                                   radius: 23,
                                   backgroundColor: AppColors.primaryLight,
-                                  child: Text(
-                                    (user?.fullName ?? 'A').substring(0, 1).toUpperCase(),
-                                    style: const TextStyle(
-                                      color: AppColors.accent,
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
+                                  backgroundImage: (user?.photoUrl != null && user!.photoUrl!.isNotEmpty)
+                                      ? NetworkImage(user.photoUrl!)
+                                      : null,
+                                  child: (user?.photoUrl == null || user!.photoUrl!.isEmpty)
+                                      ? Text(
+                                          (user?.fullName ?? 'A').substring(0, 1).toUpperCase(),
+                                          style: const TextStyle(
+                                            color: AppColors.accent,
+                                            fontSize: 19,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        )
+                                      : null,
                                 ),
                               ),
                             ),

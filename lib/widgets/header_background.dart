@@ -16,42 +16,15 @@ class HeaderBackground extends StatelessWidget {
     return Container(
       height: height,
       width: double.infinity,
-      color: const Color(0xFF0F172A),
-      child: Stack(
-        children: [
-          // Background Real Estate Image with Web Graceful Fallback
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/header_bg.jpg',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.headerGradient,
-                  ),
-                );
-              },
-            ),
-          ),
-          // Deep Navy Slate Gradient Filter Overlay
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF0F172A).withOpacity(0.88),
-                    const Color(0xFF1E293B).withOpacity(0.82),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ),
-          // Content Layer
-          Positioned.fill(child: child),
-        ],
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, Color(0xFF1E3A8A)], // Deep blue gradient matching customer dashboard
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
+      child: child,
     );
   }
 }

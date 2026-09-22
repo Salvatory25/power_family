@@ -160,6 +160,17 @@ class CustomerRepository {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
+
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? created.createdBy,
+          'actor_name': currentUser != null ? 'Staff' : 'System',
+          'action_type': 'CUSTOMER_CREATED',
+          'target_entity_type': 'Customer',
+          'target_entity_id': created.id,
+          'description': 'Added new customer \${created.fullName}',
+          'branch_id': branchUuid,
+        });
       }
     } catch (e) {
       print('Error creating customer in Supabase: $e');

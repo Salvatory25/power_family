@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Sleek Deep Navy/Slate & Rich Amber/Gold Corporate Palette
-  static const Color primary = Color(0xFF0F172A); // Sleek Deep Navy 900
-  static const Color primaryDark = Color(0xFF0B1120); // Dark Slate/Navy
-  static const Color primaryLight = Color(0xFF1E293B); // Slate 800
-  static const Color accent = Color(0xFFD97706); // Rich Amber/Gold 600
-  static const Color accentDark = Color(0xFFB45309); // Amber 700
+  static const Color primary = Color(0xFF172B4D); // Primary Navy
+  static const Color primaryDark = Color(0xFF0F1C33); // Darker variant
+  static const Color primaryLight = Color(0xFF26406C); // Lighter variant
+  static const Color accent = Color(0xFFE88900); // Accent Orange
+  static const Color accentDark = Color(0xFFCC7900); // Darker Orange
 
   // Official Power Family Logo Colors
   static const Color logoMaroon = Color(0xFF7A1215); // Deep Maroon Red
@@ -26,8 +26,8 @@ class AppColors {
   );
 
   // Background & Surfaces
-  static const Color background = Color(0xFFF8FAFC); // Slate 50
-  static const Color surface = Colors.white;
+  static const Color background = Color(0xFFF7F8FA); // New Background
+  static const Color surface = Color(0xFFFFFFFF); // White
   static const Color surfaceVariant = Color(0xFFF1F5F9); // Slate 100
   static const Color border = Color(0xFFE2E8F0); // Slate 200 Border
 
@@ -38,8 +38,8 @@ class AppColors {
   static const Color darkBorder = Color(0xFF374151);
 
   // Typography Colors
-  static const Color textPrimary = Color(0xFF0F172A); // Slate 900
-  static const Color textSecondary = Color(0xFF64748B); // Slate 500
+  static const Color textPrimary = Color(0xFF182230); // Primary Text
+  static const Color textSecondary = Color(0xFF718096); // Secondary Text
   static const Color textMuted = Color(0xFF94A3B8);
 
   // Status Colors (Centralized Status Configurations)

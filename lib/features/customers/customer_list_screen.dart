@@ -32,8 +32,13 @@ class _CustomerListScreenState extends ConsumerState<CustomerListScreen> {
 
   Future<void> _loadCustomers() async {
     setState(() => _isLoading = true);
+    final user = ref.read(authControllerProvider).value;
+    final isAdmin = user?.role.toUpperCase() == AppConstants.roleSuperAdmin || 
+                    user?.role.toUpperCase() == AppConstants.roleSystemAdmin;
+    final filterBranchId = isAdmin ? null : user?.branchId;
+
     final repo = ref.read(customerRepositoryProvider);
-    final list = await repo.getCustomers();
+    final list = await repo.getCustomers(branchId: filterBranchId);
     setState(() {
       _customers = list;
       _isLoading = false;

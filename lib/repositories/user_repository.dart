@@ -140,6 +140,20 @@ class UserRepository {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
+
+        final currentUser = supabase.auth.currentUser;
+        final actorId = currentUser?.id ?? created.uid;
+        final actorName = currentUser != null ? 'Staff/Admin' : created.fullName;
+        
+        await supabase.from('audit_logs').insert({
+          'actor_id': actorId,
+          'actor_name': actorName,
+          'action_type': 'USER_CREATED',
+          'target_entity_type': 'User',
+          'target_entity_id': created.uid,
+          'description': 'User \${created.fullName} signed up/created with role \${created.role}',
+          'branch_id': (created.branchId ?? '').isNotEmpty ? created.branchId : 'branch_dar',
+        });
       }
     } catch (e) {
       print('Error creating user in Supabase profiles: $e');
@@ -196,6 +210,17 @@ class UserRepository {
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', userId);
+            
+        final currentUser = supabase.auth.currentUser;
+        await supabase.from('audit_logs').insert({
+          'actor_id': currentUser?.id ?? 'system',
+          'actor_name': currentUser != null ? 'Admin' : 'System',
+          'action_type': 'USER_STATUS_UPDATED',
+          'target_entity_type': 'User',
+          'target_entity_id': userId,
+          'description': 'User status updated to \$newStatus',
+          'branch_id': 'branch_dar', 
+        });
       }
     } catch (e) {
       print('Error updating user status: $e');

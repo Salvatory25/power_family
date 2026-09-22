@@ -5,42 +5,18 @@ class AppConstants {
   static const String companyName = 'Power Family Investment Ltd';
   static const String appTagline = 'Business Management System';
 
-  // Master System Roles (17 Granular Roles)
+  // Master System Roles
   static const String roleSuperAdmin = 'SUPER_ADMIN';
-  static const String roleAdmin = 'ADMIN';
+  static const String roleSystemAdmin = 'SYSTEM_ADMIN';
   static const String roleBranchManager = 'BRANCH_MANAGER';
-  static const String roleSalesManager = 'SALES_MANAGER';
   static const String roleSalesAgent = 'SALES_AGENT';
-  static const String roleSecretary = 'SECRETARY';
-  static const String roleSurveyor = 'SURVEYOR';
-  static const String roleSurveyAssistant = 'SURVEY_ASSISTANT';
-  static const String roleAccountant = 'ACCOUNTANT';
-  static const String roleFollowUpOfficer = 'FOLLOW_UP_OFFICER';
-  static const String roleFieldOfficer = 'FIELD_OFFICER';
-  static const String roleDocumentOfficer = 'DOCUMENT_OFFICER';
-  static const String roleMarketingManager = 'MARKETING_MANAGER';
-  static const String roleSocialMediaManager = 'SOCIAL_MEDIA_MANAGER';
-  static const String roleCustomerSupport = 'CUSTOMER_SUPPORT';
-  static const String roleManagement = 'MANAGEMENT';
   static const String roleCustomer = 'CUSTOMER';
 
   static const List<String> allRoles = [
     roleSuperAdmin,
-    roleAdmin,
+    roleSystemAdmin,
     roleBranchManager,
-    roleSalesManager,
     roleSalesAgent,
-    roleSecretary,
-    roleSurveyor,
-    roleSurveyAssistant,
-    roleAccountant,
-    roleFollowUpOfficer,
-    roleFieldOfficer,
-    roleDocumentOfficer,
-    roleMarketingManager,
-    roleSocialMediaManager,
-    roleCustomerSupport,
-    roleManagement,
     roleCustomer,
   ];
 
@@ -48,36 +24,12 @@ class AppConstants {
     switch (role.toUpperCase()) {
       case roleSuperAdmin:
         return 'Super Admin';
-      case roleAdmin:
-        return 'System Admin';
+      case roleSystemAdmin:
+        return 'System Admin (CEO)';
       case roleBranchManager:
         return 'Branch Manager';
-      case roleSalesManager:
-        return 'Sales Manager';
       case roleSalesAgent:
         return 'Sales Agent';
-      case roleSecretary:
-        return 'Secretary';
-      case roleSurveyor:
-        return 'Surveyor / Land Officer';
-      case roleSurveyAssistant:
-        return 'Survey Assistant';
-      case roleAccountant:
-        return 'Accountant';
-      case roleFollowUpOfficer:
-        return 'Follow-Up Officer';
-      case roleFieldOfficer:
-        return 'Field Officer';
-      case roleDocumentOfficer:
-        return 'Document Officer';
-      case roleMarketingManager:
-        return 'Marketing Manager';
-      case roleSocialMediaManager:
-        return 'Social Media Manager';
-      case roleCustomerSupport:
-        return 'Customer Support';
-      case roleManagement:
-        return 'Executive Management';
       case roleCustomer:
         return 'Customer';
       default:

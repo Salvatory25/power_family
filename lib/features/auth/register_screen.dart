@@ -40,7 +40,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() => _errorMessage = 'Passwords do not match.');
+      setState(() => _errorMessage = 'Manenosiri hayafanani.');
       return;
     }
 
@@ -49,15 +49,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           email: _emailController.text,
           phone: _phoneController.text,
           password: _passwordController.text,
-          requestedRole: AppConstants.roleSalesAgent,
+          requestedRole: AppConstants.roleCustomer,
         );
 
     if (success && mounted) {
-      context.go('/account-status');
+      context.go('/');
     } else if (mounted) {
       final err = ref.read(authControllerProvider).error;
       setState(() {
-        _errorMessage = err?.toString().replaceAll('Exception: ', '') ?? 'Registration failed. Try again.';
+        _errorMessage = err?.toString().replaceAll('Exception: ', '') ?? 'Usajili umeshindwa. Jaribu tena.';
       });
     }
   }
@@ -147,11 +147,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       TextFormField(
                         controller: _fullNameController,
                         validator: (val) {
-                          if (val == null || val.trim().isEmpty) return 'Full name is required';
+                          if (val == null || val.trim().isEmpty) return 'Jina kamili linahitajika';
                           return null;
                         },
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                        decoration: _inputDecoration('Full Name', 'e.g. Salvatory Joseph', Icons.person_outline_rounded),
+                        decoration: _inputDecoration('Jina Kamili', 'mfano Salvatory Joseph', Icons.person_outline_rounded),
                       ),
                       const SizedBox(height: 18),
 
@@ -161,7 +161,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         keyboardType: TextInputType.emailAddress,
                         validator: Formatters.validateEmail,
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                        decoration: _inputDecoration('Corporate Email', 'name@powerfamily.co.tz', Icons.email_outlined),
+                        decoration: _inputDecoration('Barua Pepe', 'jina@mfano.com', Icons.email_outlined),
                       ),
                       const SizedBox(height: 18),
 
@@ -171,7 +171,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         keyboardType: TextInputType.phone,
                         validator: Formatters.validatePhone,
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                        decoration: _inputDecoration('Phone Number', '+255 7XX XXX XXX', Icons.phone_outlined),
+                        decoration: _inputDecoration('Namba ya Simu', '+255 7XX XXX XXX', Icons.phone_outlined),
                       ),
                       const SizedBox(height: 18),
 
@@ -180,13 +180,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         validator: (val) {
-                          if (val == null || val.trim().length < 6) return 'Password must be at least 6 characters';
+                          if (val == null || val.trim().length < 6) return 'Nenosiri lazima liwe na angalau herufi 6';
                           return null;
                         },
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                         decoration: _inputDecoration(
-                          'Password',
-                          'Minimum 6 characters',
+                          'Nenosiri',
+                          'Kiwango cha chini herufi 6',
                           Icons.lock_outline_rounded,
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -205,36 +205,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         controller: _confirmPasswordController,
                         obscureText: _obscurePassword,
                         validator: (val) {
-                          if (val == null || val.isEmpty) return 'Please confirm password';
+                          if (val == null || val.isEmpty) return 'Tafadhali thibitisha nenosiri';
                           return null;
                         },
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                        decoration: _inputDecoration('Confirm Password', 'Re-enter password', Icons.lock_outline_rounded),
+                        decoration: _inputDecoration('Thibitisha Nenosiri', 'Ingiza tena nenosiri', Icons.lock_outline_rounded),
                       ),
                       const SizedBox(height: 22),
 
-                      // Info Container
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.accent.withOpacity(0.25)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.info_outline_rounded, color: AppColors.accent, size: 20),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Accounts are created with "Pending" status and require Super Admin approval before activation.',
-                                style: TextStyle(fontSize: 12, color: AppColors.primary, height: 1.3, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+
 
                       // Submit Button
                       SizedBox(
@@ -261,7 +240,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      'Submit Registration',
+                                      'Tuma Usajili',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
@@ -286,13 +265,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      'Already have an account? ',
+                      'Tayari una akaunti? ',
                       style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                     ),
                     GestureDetector(
                       onTap: () => context.pop(),
                       child: const Text(
-                        'Log in',
+                        'Ingia',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
@@ -318,7 +297,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               IconButton(
                 onPressed: () => context.pop(),
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                tooltip: 'Back to Login',
+                tooltip: 'Rudi kwenye Kuingia',
               ),
             ],
           ),

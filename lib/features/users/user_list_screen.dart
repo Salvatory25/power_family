@@ -127,17 +127,19 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   ),
                   const SizedBox(height: 14),
 
-                  const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: validBranchValue,
-                    decoration: const InputDecoration(filled: true),
-                    items: branches.map((b) {
-                      return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
-                    }).toList(),
-                    onChanged: (val) => setModalState(() => selectedBranch = val ?? ''),
-                  ),
-                  const SizedBox(height: 14),
+                  if (selectedRole != AppConstants.roleSuperAdmin && selectedRole != AppConstants.roleSystemAdmin) ...[
+                    const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: validBranchValue,
+                      decoration: const InputDecoration(filled: true),
+                      items: branches.map((b) {
+                        return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
+                      }).toList(),
+                      onChanged: (val) => setModalState(() => selectedBranch = val ?? ''),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
 
                   const Text('Account Status:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
@@ -162,13 +164,15 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                         return;
                       }
 
+                      final isAdmin = selectedRole == AppConstants.roleSuperAdmin || selectedRole == AppConstants.roleSystemAdmin;
+
                       final newStaff = UserModel(
                         uid: 'u_${DateTime.now().millisecondsSinceEpoch}',
                         fullName: nameCtrl.text.trim(),
                         email: emailCtrl.text.trim(),
                         phone: phoneCtrl.text.trim(),
                         role: selectedRole,
-                        branchId: selectedBranch,
+                        branchId: isAdmin ? '' : selectedBranch,
                         status: selectedStatus,
                         createdAt: DateTime.now(),
                         updatedAt: DateTime.now(),
@@ -276,27 +280,33 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   ),
                   const SizedBox(height: 14),
 
-                  const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: validBranchValue,
-                    decoration: const InputDecoration(filled: true),
-                    items: branches.map((b) {
-                      return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
-                    }).toList(),
-                    onChanged: (val) => setModalState(() => selectedBranch = val ?? ''),
-                  ),
-                  const SizedBox(height: 24),
+                  if (selectedRole != AppConstants.roleSuperAdmin && selectedRole != AppConstants.roleSystemAdmin) ...[
+                    const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: validBranchValue,
+                      decoration: const InputDecoration(filled: true),
+                      items: branches.map((b) {
+                        return DropdownMenuItem(value: b.id, child: Text('${b.name} (${b.code})'));
+                      }).toList(),
+                      onChanged: (val) => setModalState(() => selectedBranch = val ?? ''),
+                    ),
+                    const SizedBox(height: 24),
+                  ] else ...[
+                    const SizedBox(height: 24),
+                  ],
 
                   AppButton(
                     text: 'Update Staff Account',
                     onPressed: () async {
+                      final isAdmin = selectedRole == AppConstants.roleSuperAdmin || selectedRole == AppConstants.roleSystemAdmin;
+                      
                       final updated = user.copyWith(
                         fullName: nameCtrl.text.trim(),
                         email: emailCtrl.text.trim(),
                         phone: phoneCtrl.text.trim(),
                         role: selectedRole,
-                        branchId: selectedBranch,
+                        branchId: isAdmin ? '' : selectedBranch,
                         status: selectedStatus,
                         updatedAt: DateTime.now(),
                       );

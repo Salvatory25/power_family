@@ -42,6 +42,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final user = ref.read(authControllerProvider).value;
       if (user != null && user.status != AppConstants.statusActive) {
         context.go('/account-status');
+      } else if (user != null && user.role == AppConstants.roleCustomer) {
+        context.go('/customer-dashboard');
       } else {
         context.go('/dashboard');
       }

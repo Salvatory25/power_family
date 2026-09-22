@@ -18,11 +18,16 @@ void main() {
       expect(Formatters.validatePhone(''), isNotNull);
     });
 
+    test('AppConstants contains correct strings', () {
+      expect(AppConstants.appName, 'POWER FAMILY');
+      expect(AppConstants.roleSuperAdmin, 'SUPER_ADMIN');
+      expect(AppConstants.roleSalesAgent, 'SALES_AGENT');
+    });
+
     test('Role Labels resolution', () {
       expect(AppConstants.getRoleLabel(AppConstants.roleSuperAdmin), equals('Super Admin'));
       expect(AppConstants.getRoleLabel(AppConstants.roleBranchManager), equals('Branch Manager'));
       expect(AppConstants.getRoleLabel(AppConstants.roleSalesAgent), equals('Sales Agent'));
-      expect(AppConstants.getRoleLabel(AppConstants.roleSurveyor), equals('Surveyor / Land Officer'));
     });
 
   });

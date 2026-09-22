@@ -16,6 +16,10 @@ class BranchRepository {
       final supabase = _supabase;
       if (supabase != null) {
         final response = await supabase.from('branches').select();
+        print('=================================');
+        print('DEBUG: Supabase returned \${(response as List).length} branches');
+        print('DEBUG RAW DATA: $response');
+        print('=================================');
         if (response != null && (response as List).isNotEmpty) {
           final List<BranchModel> mappedList = [];
           for (final rawItem in (response as List)) {

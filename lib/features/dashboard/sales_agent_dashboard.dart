@@ -47,10 +47,15 @@ class SalesAgentDashboard extends ConsumerWidget {
                   CircleAvatar(
                     radius: 25,
                     backgroundColor: AppColors.accent,
-                    child: Text(
-                      user?.fullName.substring(0, 1).toUpperCase() ?? 'A',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
+                    backgroundImage: (user?.photoUrl != null && user!.photoUrl!.isNotEmpty)
+                        ? NetworkImage(user.photoUrl!)
+                        : null,
+                    child: (user?.photoUrl == null || user!.photoUrl!.isEmpty)
+                        ? Text(
+                            user?.fullName.substring(0, 1).toUpperCase() ?? 'A',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
