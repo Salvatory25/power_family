@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../widgets/header_background.dart';
 import '../auth/auth_controller.dart';
@@ -46,6 +48,43 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
         if (mounted) setState(() => _isUploading = false);
       }
     }
+  }
+
+  void _showLanguageSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (bottomSheetContext) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('profile.select_language'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Text('🇹🇿', style: TextStyle(fontSize: 24)),
+                title: Text('profile.swahili'.tr()),
+                trailing: context.locale.languageCode == 'sw' ? const Icon(Icons.check, color: AppColors.primary) : null,
+                onTap: () {
+                  context.setLocale(const Locale('sw'));
+                  Navigator.pop(bottomSheetContext);
+                },
+              ),
+              ListTile(
+                leading: const Text('🇬🇧', style: TextStyle(fontSize: 24)),
+                title: Text('profile.english'.tr()),
+                trailing: context.locale.languageCode == 'en' ? const Icon(Icons.check, color: AppColors.primary) : null,
+                onTap: () {
+                  context.setLocale(const Locale('en'));
+                  Navigator.pop(bottomSheetContext);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -168,9 +207,9 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Account Settings',
-                    style: TextStyle(
+                  Text(
+                    'profile.settings'.tr(),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -196,8 +235,8 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                       children: [
                         _buildMenuTile(
                           icon: Icons.person_outline_rounded,
-                          title: 'Personal Information',
-                          subtitle: 'View and edit your profile',
+                          title: 'profile.edit_profile'.tr(),
+                          subtitle: '',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -208,8 +247,8 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                         const Divider(height: 1, indent: 64, color: AppColors.border),
                         _buildMenuTile(
                           icon: Icons.home_work_outlined,
-                          title: 'My Properties',
-                          subtitle: 'View properties you are buying',
+                          title: 'profile.my_properties'.tr(),
+                          subtitle: '',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -220,8 +259,8 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                         const Divider(height: 1, indent: 64, color: AppColors.border),
                         _buildMenuTile(
                           icon: Icons.receipt_long_outlined,
-                          title: 'Payment History',
-                          subtitle: 'Receipts and transaction logs',
+                          title: 'profile.payment_history'.tr(),
+                          subtitle: '',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -229,13 +268,20 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                             );
                           },
                         ),
+                        const Divider(height: 1, indent: 64, color: AppColors.border),
+                        _buildMenuTile(
+                          icon: Icons.language_rounded,
+                          title: 'profile.language'.tr(),
+                          subtitle: context.locale.languageCode == 'sw' ? 'Kiswahili' : 'English',
+                          onTap: () => _showLanguageSelector(context),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
                   
-                  const Text(
-                    'Support',
+                  Text(
+                    'profile.help_support'.tr(),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -261,13 +307,31 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                       children: [
                         _buildMenuTile(
                           icon: Icons.support_agent_rounded,
-                          title: 'Help & Support',
-                          subtitle: 'Contact us for assistance',
+                          title: 'profile.help_support'.tr(),
+                          subtitle: '',
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => const CustomerSupportScreen()),
                             );
+                          },
+                        ),
+                        const Divider(height: 1, indent: 64, color: AppColors.border),
+                        _buildMenuTile(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          title: 'profile.live_chat'.tr(),
+                          subtitle: '+255 759 423 626',
+                          onTap: () async {
+                            final url = Uri.parse('https://wa.me/255759423626');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Could not launch WhatsApp')),
+                                );
+                              }
+                            }
                           },
                         ),
                       ],
@@ -282,13 +346,13 @@ class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
                       onPressed: () async {
                         await ref.read(authControllerProvider.notifier).logout();
                         if (context.mounted) {
-                          context.go('/auth'); // Route to auth explicitly just in case, though auth listener usually handles it
+                          context.go('/login'); // Route to login explicitly just in case, though auth listener usually handles it
                         }
                       },
                       icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                      label: const Text(
-                        'Log Out',
-                        style: TextStyle(
+                      label: Text(
+                        'profile.log_out'.tr(),
+                        style: const TextStyle(
                           color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,

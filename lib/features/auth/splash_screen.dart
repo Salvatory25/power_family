@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../widgets/app_logo.dart';
 import 'auth_controller.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -70,44 +71,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withOpacity(0.4),
-                      blurRadius: 20,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.business_center_rounded,
-                  size: 50,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                AppConstants.appName,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: 2.0,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                AppConstants.companyName,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textMuted,
-                  letterSpacing: 0.5,
-                ),
+              const AppLogo(
+                size: 120,
+                showText: true,
+                isVertical: true,
+                isDarkBackground: true,
               ),
               const SizedBox(height: 48),
               const SizedBox(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
@@ -49,12 +50,12 @@ class SurveyorDashboard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Surveyor Dashboard (${user?.fullName})',
+                          '${'surveyor_dashboard.title'.tr()} (${user?.fullName})',
                           style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${tasks.length} Assigned Survey Tasks • $inProgress In Progress',
+                          '${tasks.length} ${'surveyor_dashboard.assigned_tasks'.tr()} • $inProgress ${'surveyor_dashboard.in_progress'.tr()}',
                           style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
                         ),
                       ],
@@ -67,9 +68,9 @@ class SurveyorDashboard extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
 
-          const Text(
-            'Survey Operations Summary',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          Text(
+            'surveyor_dashboard.survey_operations'.tr(),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 10),
 
@@ -86,28 +87,28 @@ class SurveyorDashboard extends ConsumerWidget {
                 childAspectRatio: ratio,
                 children: [
                   StatCard(
-                    title: 'Active Survey Tasks',
+                    title: 'surveyor_dashboard.active_tasks'.tr(),
                     value: tasks.length.toString(),
                     icon: Icons.map_outlined,
                     color: AppColors.accent,
                     onTap: () => context.push('/surveys'),
                   ),
                   StatCard(
-                    title: 'In Progress',
+                    title: 'surveyor_dashboard.in_progress'.tr(),
                     value: inProgress.toString(),
                     icon: Icons.pending_actions_outlined,
                     color: AppColors.statusSurveying,
                     onTap: () => context.push('/surveys'),
                   ),
                   StatCard(
-                    title: 'Completed Surveys',
+                    title: 'surveyor_dashboard.completed_surveys'.tr(),
                     value: completed.toString(),
                     icon: Icons.task_alt,
                     color: AppColors.statusAvailable,
                     onTap: () => context.push('/surveys'),
                   ),
                   StatCard(
-                    title: 'Land Plots',
+                    title: 'surveyor_dashboard.land_plots'.tr(),
                     value: landProps.length.toString(),
                     icon: Icons.landscape_outlined,
                     color: AppColors.primary,
@@ -121,9 +122,9 @@ class SurveyorDashboard extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Map Placeholder
-          const Text(
-            'Live GPS Tracking',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          Text(
+            'surveyor_dashboard.live_gps'.tr(),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 10),
           Container(
@@ -135,13 +136,13 @@ class SurveyorDashboard extends ConsumerWidget {
             ),
             child: Stack(
               children: [
-                const Center(
+                Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.map, size: 48, color: AppColors.textMuted),
-                      SizedBox(height: 8),
-                      Text('Map Integration Placeholder', style: TextStyle(color: AppColors.textSecondary)),
+                      const Icon(Icons.map, size: 48, color: AppColors.textMuted),
+                      const SizedBox(height: 8),
+                      Text('surveyor_dashboard.map_placeholder'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -165,13 +166,13 @@ class SurveyorDashboard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'My Survey Assignments',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              Text(
+                'surveyor_dashboard.my_assignments'.tr(),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
               TextButton(
                 onPressed: () => context.push('/surveys'),
-                child: const Text('View All'),
+                child: Text('surveyor_dashboard.view_all'.tr()),
               ),
             ],
           ),
@@ -186,7 +187,7 @@ class SurveyorDashboard extends ConsumerWidget {
               final task = tasks[index];
               final propList = allProps.where((p) => p.id == task.propertyId).toList();
 
-              final propTitle = propList.isNotEmpty ? propList.first.title : 'Property Task';
+              final propTitle = propList.isNotEmpty ? propList.first.title : 'surveyor_dashboard.property_task'.tr();
               final plotNo = propList.isNotEmpty ? propList.first.plotNumber ?? "N/A" : "N/A";
               final plotSize = propList.isNotEmpty ? propList.first.size ?? "N/A" : "N/A";
 
@@ -200,7 +201,7 @@ class SurveyorDashboard extends ConsumerWidget {
                     ),
                     title: Text(propTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     subtitle: Text(
-                      'Plot: $plotNo ($plotSize)\nNotes: ${task.notes}',
+                      '${'surveyor_dashboard.plot'.tr()}: $plotNo ($plotSize)\n${'surveyor_dashboard.notes'.tr()}: ${task.notes}',
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: Column(
@@ -213,7 +214,7 @@ class SurveyorDashboard extends ConsumerWidget {
                           InkWell(
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Marking $propTitle as completed...')),
+                                SnackBar(content: Text('${'surveyor_dashboard.marking_completed'.tr()} $propTitle ${'surveyor_dashboard.as_completed'.tr()}')),
                               );
                             },
                             child: Container(
@@ -223,9 +224,9 @@ class SurveyorDashboard extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: AppColors.statusAvailable),
                               ),
-                              child: const Text(
-                                'Mark Completed',
-                                style: TextStyle(fontSize: 10, color: AppColors.statusAvailable, fontWeight: FontWeight.bold),
+                              child: Text(
+                                'surveyor_dashboard.mark_completed'.tr(),
+                                style: const TextStyle(fontSize: 10, color: AppColors.statusAvailable, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),

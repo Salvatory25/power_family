@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../../models/branch_model.dart';
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../auth/auth_controller.dart';
 import 'dashboard_providers.dart';
+import '../notifications/notification_controller.dart';
 
 class BranchManagerDashboard extends ConsumerWidget {
   const BranchManagerDashboard({super.key});
@@ -18,11 +19,11 @@ class BranchManagerDashboard extends ConsumerWidget {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'GOOD MORNING';
+      return 'admin.good_morning'.tr();
     } else if (hour < 17) {
-      return 'GOOD AFTERNOON';
+      return 'admin.good_afternoon'.tr();
     } else {
-      return 'GOOD EVENING';
+      return 'admin.good_evening'.tr();
     }
   }
 
@@ -55,6 +56,7 @@ class BranchManagerDashboard extends ConsumerWidget {
 
     final availableCount = branchProps.where((p) => p.status == AppConstants.propertyAvailable).length;
     final soldCount = branchProps.where((p) => p.status == AppConstants.propertySold).length;
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
     return Stack(
       children: [
@@ -175,7 +177,7 @@ class BranchManagerDashboard extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              user?.fullName ?? 'Branch Manager',
+                              user?.fullName ?? 'branch_manager.role_title'.tr(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -205,30 +207,48 @@ class BranchManagerDashboard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Stack(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(9),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white.withOpacity(0.18)),
-                                ),
-                                child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
+                          InkWell(
+                            onTap: () => context.push('/chat'),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.12),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.18)),
                               ),
-                              Positioned(
-                                right: 8,
-                                top: 8,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.accent,
+                              child: const Icon(Icons.forum_outlined, color: Colors.white, size: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => context.push('/notifications'),
+                            child: Stack(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(9),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.12),
                                     shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white.withOpacity(0.18)),
                                   ),
+                                  child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
                                 ),
-                              ),
-                            ],
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    right: 4,
+                                    top: 4,
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.accent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -241,11 +261,11 @@ class BranchManagerDashboard extends ConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildHeaderPill(Icons.people_outline, '${branchStaff.length} Staff Members', AppColors.accent),
+                        _buildHeaderPill(Icons.people_outline, '${branchStaff.length} ${'branch_manager.staff_members'.tr()}', AppColors.accent),
                         const SizedBox(width: 8),
-                        _buildHeaderPill(Icons.home_work_outlined, '${branchProps.length} Properties', Colors.white),
+                        _buildHeaderPill(Icons.home_work_outlined, '${branchProps.length} ${'branch_manager.properties'.tr()}', Colors.white),
                         const SizedBox(width: 8),
-                        _buildHeaderPill(Icons.point_of_sale_outlined, '${branchSales.length} Completed Sales', Colors.white),
+                        _buildHeaderPill(Icons.point_of_sale_outlined, '${branchSales.length} ${'branch_manager.completed_sales'.tr()}', Colors.white),
                       ],
                     ),
                   ),
@@ -277,9 +297,9 @@ class BranchManagerDashboard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Quick Actions Bar
-                  const Text(
-                    'Quick Actions',
-                    style: TextStyle(
+                  Text(
+                    'branch_manager.quick_actions'.tr(),
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -291,34 +311,22 @@ class BranchManagerDashboard extends ConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        SizedBox(
-                          width: 85,
-                          child: _buildQuickActionButton(context, Icons.add_home_work_rounded, 'Properties', () => context.push('/properties'), AppColors.primary),
-                        ),
-                        const SizedBox(width: 10),
-                        SizedBox(
-                          width: 85,
-                          child: _buildQuickActionButton(context, Icons.add_card_rounded, 'Sales', () => context.push('/sales'), AppColors.statusAvailable),
-                        ),
-                        const SizedBox(width: 10),
-                        SizedBox(
-                          width: 85,
-                          child: _buildQuickActionButton(context, Icons.person_add_alt_rounded, 'Leads', () => context.push('/leads'), AppColors.accent),
-                        ),
-                        const SizedBox(width: 10),
-                        SizedBox(
-                          width: 85,
-                          child: _buildQuickActionButton(context, Icons.map_rounded, 'Surveys', () => context.push('/surveys'), AppColors.statusSurveying),
-                        ),
+                        _buildQuickActionButton(context, Icons.add_home_work_rounded, 'branch_manager.properties'.tr(), () => context.push('/properties'), AppColors.primary),
+                        const SizedBox(width: 12),
+                        _buildQuickActionButton(context, Icons.add_card_rounded, 'branch_manager.sales'.tr(), () => context.push('/sales'), AppColors.statusAvailable),
+                        const SizedBox(width: 12),
+                        _buildQuickActionButton(context, Icons.person_add_alt_rounded, 'branch_manager.leads'.tr(), () => context.push('/leads'), AppColors.accent),
+                        const SizedBox(width: 12),
+                        _buildQuickActionButton(context, Icons.map_rounded, 'branch_manager.surveys'.tr(), () => context.push('/surveys'), AppColors.statusSurveying),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   // Branch Targets & Goals
-                  const Text(
-                    'Branch Targets & Goals',
-                    style: TextStyle(
+                  Text(
+                    'branch_manager.targets_goals'.tr(),
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -329,9 +337,9 @@ class BranchManagerDashboard extends ConsumerWidget {
                   _buildTargetProgress(totalRevenue, branchTarget, targetProgress),
                   const SizedBox(height: 24),
 
-                  const Text(
-                    'Operational Performance',
-                    style: TextStyle(
+                  Text(
+                    'branch_manager.operational_perf'.tr(),
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -353,29 +361,29 @@ class BranchManagerDashboard extends ConsumerWidget {
                         childAspectRatio: ratio,
                         children: [
                           StatCard(
-                            title: 'Branch Properties',
+                            title: 'branch_manager.branch_properties'.tr(),
                             value: branchProps.length.toString(),
                             icon: Icons.home_work_outlined,
                             color: AppColors.primary,
-                            subtitle: '$availableCount Available | $soldCount Sold',
+                            subtitle: '$availableCount ${'admin.available'.tr()} | $soldCount ${'admin.sold'.tr()}',
                             onTap: () => context.push('/properties'),
                           ),
                           StatCard(
-                            title: 'Branch Sales',
+                            title: 'branch_manager.branch_sales'.tr(),
                             value: branchSales.length.toString(),
                             icon: Icons.point_of_sale,
                             color: AppColors.statusAvailable,
                             onTap: () => context.push('/sales'),
                           ),
                           StatCard(
-                            title: 'Branch Leads',
+                            title: 'branch_manager.branch_leads'.tr(),
                             value: branchLeads.length.toString(),
                             icon: Icons.leaderboard,
                             color: AppColors.accent,
                             onTap: () => context.push('/leads'),
                           ),
                           StatCard(
-                            title: 'Land Surveys',
+                            title: 'branch_manager.land_surveys'.tr(),
                             value: branchSurveys.length.toString(),
                             icon: Icons.map_outlined,
                             color: AppColors.statusSurveying,
@@ -389,9 +397,9 @@ class BranchManagerDashboard extends ConsumerWidget {
                   const SizedBox(height: 28),
 
                   // Recent Revenue Chart
-                  const Text(
-                    'Recent Revenue',
-                    style: TextStyle(
+                  Text(
+                    'branch_manager.recent_revenue'.tr(),
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -399,16 +407,16 @@ class BranchManagerDashboard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _buildRevenueChart(branchSales),
+                  _buildRevenueChart(context, branchSales),
                   const SizedBox(height: 28),
 
                   // Branch Staff Section Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Branch Staff Members',
-                        style: TextStyle(
+                      Text(
+                        'branch_manager.branch_staff'.tr(),
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -418,9 +426,9 @@ class BranchManagerDashboard extends ConsumerWidget {
                       TextButton.icon(
                         onPressed: () => context.push('/users'),
                         icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                        label: const Text(
-                          'View All',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        label: Text(
+                          'branch_manager.view_all'.tr(),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -496,9 +504,9 @@ class BranchManagerDashboard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Recent Activities',
-                        style: TextStyle(
+                      Text(
+                        'branch_manager.recent_activities'.tr(),
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -508,12 +516,12 @@ class BranchManagerDashboard extends ConsumerWidget {
                       TextButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                        label: const Text('View All', style: TextStyle(fontWeight: FontWeight.w700)),
+                        label: Text('branch_manager.view_all'.tr(), style: const TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildActivitiesList(branchActivities),
+                  _buildActivitiesList(context, branchActivities),
                 ],
               ),
             ),
@@ -545,9 +553,9 @@ class BranchManagerDashboard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Monthly Revenue Target',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+              Text(
+                'branch_manager.monthly_target'.tr(),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
               ),
               Text(
                 '${(progress * 100).toStringAsFixed(1)}%',
@@ -584,7 +592,7 @@ class BranchManagerDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildRevenueChart(List<dynamic> sales) {
+  Widget _buildRevenueChart(BuildContext context, List<dynamic> sales) {
     if (sales.isEmpty) {
       return Container(
         height: 200,
@@ -594,7 +602,7 @@ class BranchManagerDashboard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
         ),
-        child: const Text('No sales data available for chart.', style: TextStyle(color: AppColors.textSecondary)),
+        child: Text('branch_manager.no_sales_data'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
       );
     }
     
@@ -648,7 +656,7 @@ class BranchManagerDashboard extends ConsumerWidget {
                   return Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
-                      DateFormat('E').format(date),
+                      DateFormat('E', context.locale.languageCode).format(date),
                       style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
                     ),
                   );
@@ -693,7 +701,7 @@ class BranchManagerDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildActivitiesList(List<dynamic> activities) {
+  Widget _buildActivitiesList(BuildContext context, List<dynamic> activities) {
     if (activities.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -703,7 +711,7 @@ class BranchManagerDashboard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
         ),
-        child: const Text('No recent activities.', style: TextStyle(color: AppColors.textSecondary)),
+        child: Text('branch_manager.no_activities'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
       );
     }
 
@@ -751,7 +759,7 @@ class BranchManagerDashboard extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
             ),
             trailing: Text(
-              DateFormat('MMM d, h:mm a').format(act.createdAt),
+              DateFormat('MMM d, h:mm a', context.locale.languageCode).format(act.createdAt),
               style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
             ),
           ),
@@ -765,7 +773,9 @@ class BranchManagerDashboard extends ConsumerWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        width: 100,
+        height: 100,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
@@ -779,6 +789,7 @@ class BranchManagerDashboard extends ConsumerWidget {
           ],
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(8),
@@ -788,13 +799,19 @@ class BranchManagerDashboard extends ConsumerWidget {
               ),
               child: Icon(icon, size: 20, color: iconColor),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+            const SizedBox(height: 8),
+            Expanded(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  height: 1.1,
+                ),
               ),
             ),
           ],

@@ -169,6 +169,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   _hubTile(context, 'Surveys', Icons.architecture, '/surveys', AppColors.statusSurveying),
                   _hubTile(context, 'SMS System', Icons.sms_outlined, '/sms', AppColors.statusUnderProcess),
                   _hubTile(context, 'Reports', Icons.assessment_outlined, '/reports', AppColors.primary),
+                  _hubTile(context, 'Live Chat', Icons.chat_bubble_outline, '/chat', AppColors.accent),
+                  _hubTile(context, 'Kikoba Groups', Icons.groups, '/admin/kikoba', Colors.orange),
                   _hubTile(context, 'Settings', Icons.settings_outlined, '/settings', AppColors.textSecondary),
                   _hubTile(context, 'Profile', Icons.person_outline, '/profile', AppColors.primary),
                 ],

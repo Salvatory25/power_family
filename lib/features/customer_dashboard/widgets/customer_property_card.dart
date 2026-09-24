@@ -7,7 +7,7 @@ import '../../../models/property_model.dart';
 import '../../../core/utils/formatters.dart';
 import '../providers/favourites_provider.dart';
 
-class CustomerPropertyCard extends ConsumerWidget {
+class CustomerPropertyCard extends ConsumerStatefulWidget {
   final PropertyModel property;
   final bool isFeatured;
 
@@ -18,13 +18,27 @@ class CustomerPropertyCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CustomerPropertyCard> createState() => _CustomerPropertyCardState();
+}
+
+class _CustomerPropertyCardState extends ConsumerState<CustomerPropertyCard> {
+  final PageController _pageController = PageController();
+  int _currentImageIndex = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final favState = ref.watch(favouritesProvider);
-    final isFavourited = favState.valueOrNull?.contains(property.id) ?? false;
+    final isFavourited = favState.valueOrNull?.contains(widget.property.id) ?? false;
 
     return GestureDetector(
       onTap: () {
-        context.push('/customer-properties/details', extra: property);
+        context.push('/customer-properties/details', extra: widget.property);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -48,11 +62,47 @@ class CustomerPropertyCard extends ConsumerWidget {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   child: AspectRatio(
                     aspectRatio: 16 / 11,
-                    child: property.images.isNotEmpty
-                        ? Image.network(
-                            property.images.first,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                    child: widget.property.images.isNotEmpty
+                        ? Stack(
+                            children: [
+                              PageView.builder(
+                                controller: _pageController,
+                                onPageChanged: (index) {
+                                  setState(() => _currentImageIndex = index);
+                                },
+                                itemCount: widget.property.images.length,
+                                itemBuilder: (context, index) {
+                                  return Image.network(
+                                    widget.property.images[index],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                                  );
+                                },
+                              ),
+                              if (widget.property.images.length > 1)
+                                Positioned(
+                                  bottom: 12,
+                                  left: 0,
+                                  right: 0,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      widget.property.images.length,
+                                      (index) => Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                                        width: _currentImageIndex == index ? 8 : 6,
+                                        height: _currentImageIndex == index ? 8 : 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _currentImageIndex == index 
+                                              ? Colors.white 
+                                              : Colors.white.withOpacity(0.5),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           )
                         : _buildPlaceholder(),
                   ),
@@ -92,7 +142,7 @@ class CustomerPropertyCard extends ConsumerWidget {
                   right: 16,
                   child: GestureDetector(
                     onTap: () {
-                      ref.read(favouritesProvider.notifier).toggleFavourite(property.id);
+                      ref.read(favouritesProvider.notifier).toggleFavourite(widget.property.id);
                     },
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -123,7 +173,7 @@ class CustomerPropertyCard extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          property.title,
+                          widget.property.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -135,7 +185,7 @@ class CustomerPropertyCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        Formatters.formatCurrency(property.price).replaceAll('TZS ', 'Tsh '),
+                        Formatters.formatCurrency(widget.property.price).replaceAll('TZS ', 'Tsh '),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
@@ -151,7 +201,7 @@ class CustomerPropertyCard extends ConsumerWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          '${property.district}, ${property.region}',
+                          '${widget.property.district}, ${widget.property.region}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -188,25 +238,25 @@ class CustomerPropertyCard extends ConsumerWidget {
   Widget _buildFeaturesRow() {
     List<Widget> children = [];
 
-    switch (property.type.toUpperCase()) {
+    switch (widget.property.type.toUpperCase()) {
       case 'NYUMBA':
-        final beds = property.bedrooms ?? 0;
-        final baths = property.bathrooms ?? 0;
-        final size = property.size ?? 'N/A';
+        final beds = widget.property.bedrooms ?? 0;
+        final baths = widget.property.bathrooms ?? 0;
+        final size = widget.property.size ?? 'N/A';
         if (beds > 0) children.add(_buildFeatureItem(Icons.bed_rounded, '$beds Beds'));
         if (baths > 0) children.add(_buildFeatureItem(Icons.bathtub_rounded, '$baths Baths'));
         children.add(_buildFeatureItem(Icons.square_foot_rounded, size));
         break;
       case 'GARI':
-        final year = property.vehicleYear?.toString() ?? 'N/A';
-        final make = property.vehicleMake ?? 'Vehicle';
+        final year = widget.property.vehicleYear?.toString() ?? 'N/A';
+        final make = widget.property.vehicleMake ?? 'Vehicle';
         children.add(_buildFeatureItem(Icons.calendar_month_rounded, year));
         children.add(_buildFeatureItem(Icons.directions_car_rounded, make));
         break;
       case 'KIWANJA':
       default:
-        final size = property.size ?? 'N/A';
-        children.add(_buildFeatureItem(Icons.landscape_rounded, property.landUse ?? 'Makazi'));
+        final size = widget.property.size ?? 'N/A';
+        children.add(_buildFeatureItem(Icons.landscape_rounded, widget.property.landUse ?? 'Makazi'));
         children.add(_buildFeatureItem(Icons.square_foot_rounded, size));
         break;
     }
@@ -220,7 +270,7 @@ class CustomerPropertyCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          property.type,
+          widget.property.type,
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,

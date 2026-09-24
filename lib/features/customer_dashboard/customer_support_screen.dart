@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 
 class CustomerSupportScreen extends StatelessWidget {
@@ -6,6 +7,30 @@ class CustomerSupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void _openWhatsApp() async {
+      final phone = '255759423626'; // WhatsApp number
+      final message = 'Hello Power Family Support, I need some assistance.';
+      final url = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+      
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open WhatsApp. Please ensure it is installed.')),
+          );
+        }
+      }
+    }
+
+    void _makePhoneCall() async {
+      final phone = '+255759423626';
+      final url = Uri.parse('tel:$phone');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -59,12 +84,18 @@ class CustomerSupportScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _buildContactOption(
+              icon: Icons.chat_rounded,
+              title: 'WhatsApp',
+              subtitle: 'Message us on WhatsApp directly',
+              onTap: _openWhatsApp,
+              iconColor: const Color(0xFF25D366),
+            ),
+            const SizedBox(height: 16),
+            _buildContactOption(
               icon: Icons.phone_outlined,
               title: 'Call Us',
-              subtitle: '0658003626 / 0759423626',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Calling 0658003626 / 0759423626...')));
-              },
+              subtitle: '0759423626 / 0658003626',
+              onTap: _makePhoneCall,
             ),
             const SizedBox(height: 16),
             _buildContactOption(
@@ -86,6 +117,7 @@ class CustomerSupportScreen extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? iconColor,
   }) {
     return InkWell(
       onTap: onTap,
@@ -112,7 +144,7 @@ class CustomerSupportScreen extends StatelessWidget {
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 24),
+              child: Icon(icon, color: iconColor ?? AppColors.primary, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(

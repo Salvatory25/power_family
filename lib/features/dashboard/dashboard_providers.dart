@@ -72,6 +72,11 @@ final activitiesProvider = FutureProvider<List<ActivityModel>>((ref) async {
   return ref.read(activityRepoProvider).getActivities(branchId: branchId);
 });
 
+final activitiesStreamProvider = StreamProvider<List<ActivityModel>>((ref) {
+  final branchId = _getBranchFilter(ref);
+  return ref.read(activityRepoProvider).getActivitiesStream(branchId: branchId);
+});
+
 final branchesProvider = FutureProvider<List<BranchModel>>((ref) async {
   // Branches are globally visible typically, but can be filtered if needed. 
   // We'll leave branches unfiltered so branch managers see other branches exist, 

@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../auth/auth_controller.dart';
@@ -9,6 +11,7 @@ import '../../repositories/property_repository.dart';
 import '../../models/property_model.dart';
 import '../../models/user_model.dart';
 import '../../widgets/header_background.dart';
+import '../notifications/notification_controller.dart';
 import 'customer_explore_screen.dart';
 import 'customer_favourites_screen.dart';
 import 'customer_profile_screen.dart';
@@ -47,7 +50,7 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
         body = const CustomerFavouritesScreen();
         break;
       case 3:
-        body = Center(child: Text('Chat Coming Soon', style: TextStyle(color: AppColors.textPrimary)));
+        body = Center(child: Text('Connecting to WhatsApp...', style: TextStyle(color: AppColors.textPrimary)));
         break;
       case 4:
         body = const CustomerProfileScreen();
@@ -93,10 +96,10 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-              _buildNavItem(1, Icons.explore_rounded, Icons.explore_outlined, 'Explore'),
-              _buildNavItem(2, Icons.favorite_rounded, Icons.favorite_outline_rounded, 'Favorites'),
+              _buildNavItem(1, Icons.explore_rounded, Icons.explore_outlined, 'dashboard.explore'.tr()),
+              _buildNavItem(2, Icons.favorite_rounded, Icons.favorite_outline_rounded, 'dashboard.favourites'.tr()),
               _buildNavItem(3, Icons.chat_bubble_rounded, Icons.chat_bubble_outline_rounded, 'Chat'),
-              _buildNavItem(4, Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
+              _buildNavItem(4, Icons.person_rounded, Icons.person_outline_rounded, 'dashboard.profile'.tr()),
             ],
           ),
         ),
@@ -107,7 +110,11 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
   Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
     final isActive = _currentIndex == index;
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        if (index == 3) {
+          context.push('/chat');
+          return;
+        }
         setState(() => _currentIndex = index);
       },
       behavior: HitTestBehavior.opaque,
@@ -133,130 +140,190 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
     );
   }
 
-  String _getGreeting() {
+  String _getGreeting(BuildContext context) {
     final hour = DateTime.now().hour;
+    final isSw = context.locale.languageCode == 'sw';
     if (hour < 12) {
-      return 'GOOD MORNING';
+      return isSw ? 'HABARI ZA ASUBUHI' : 'GOOD MORNING';
     } else if (hour < 17) {
-      return 'GOOD AFTERNOON';
+      return isSw ? 'HABARI ZA MCHANA' : 'GOOD AFTERNOON';
     } else {
-      return 'GOOD EVENING';
+      return isSw ? 'HABARI ZA JIONI' : 'GOOD EVENING';
     }
   }
 
   Widget _buildHome(UserModel? user) {
     final propertiesState = ref.watch(availablePropertiesProvider);
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
     return Stack(
       children: [
         // Top Deep Header Banner Background
         HeaderBackground(
-          height: 200,
+          height: 290,
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 12.0),
+              padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Sleek Profile Avatar
-                      GestureDetector(
-                        onTap: () => setState(() => _currentIndex = 4), // Go to profile
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                      // Profile Picture and Name
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => setState(() => _currentIndex = 4), // Go to profile
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2.0),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: CircleAvatar(
+                                radius: 24,
+                                backgroundColor: AppColors.primaryLight,
+                                backgroundImage: (user?.photoUrl != null && user!.photoUrl!.isNotEmpty)
+                                    ? NetworkImage(user.photoUrl!)
+                                    : null,
+                                child: (user?.photoUrl == null || user!.photoUrl!.isEmpty)
+                                    ? Text(
+                                        (user?.fullName ?? 'C').substring(0, 1).toUpperCase(),
+                                        style: const TextStyle(
+                                          color: AppColors.accent,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user?.fullName?.split(" ").first ?? 'Customer',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Customer',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
-                          child: CircleAvatar(
-                            radius: 26,
-                            backgroundColor: AppColors.primaryLight,
-                            backgroundImage: (user?.photoUrl != null && user!.photoUrl!.isNotEmpty)
-                                ? NetworkImage(user.photoUrl!)
-                                : null,
-                            child: (user?.photoUrl == null || user!.photoUrl!.isEmpty)
-                                ? Text(
-                                    (user?.fullName ?? 'C').substring(0, 1).toUpperCase(),
-                                    style: const TextStyle(
-                                      color: AppColors.accent,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
+                        ],
+                      ),
+                      
+                      // Notification Bell
+                      GestureDetector(
+                        onTap: () => context.push('/notifications'),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
+                              if (unreadCount > 0)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.statusAvailable,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: AppColors.primary, width: 1.5),
                                     ),
-                                  )
-                                : null,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      
-                      // Greeting and Name
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _getGreeting(),
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              user?.fullName ?? 'Valued Customer',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Header Actions (Notification)
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
-                            Positioned(
-                              right: 2,
-                              top: 2,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: AppColors.statusAvailable,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: AppColors.primary, width: 1.5),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
+                  ),
+                  
+                  const SizedBox(height: 28),
+                  
+                  // Personalized Greeting
+                  Text(
+                    '${_getGreeting(context)}, ${user?.fullName?.split(" ").first ?? "Customer"}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Tafuta mali inayokufaa leo.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 14,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Compact Search Bar
+                  GestureDetector(
+                    onTap: () => setState(() => _currentIndex = 1), // Go to explore tab
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Tafuta nyumba, viwanja au magari...',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -266,7 +333,7 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
 
         // Main Body Floating Curved Container Sheet
         Padding(
-          padding: const EdgeInsets.only(top: 110.0),
+          padding: const EdgeInsets.only(top: 260.0),
           child: Container(
             width: double.infinity,
             decoration: const BoxDecoration(
@@ -288,33 +355,69 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Featured Section Header
-                        const Text(
-                          'Featured Properties',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                          ),
+                        // Quick Actions
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryLight.withOpacity(0.1),
+                                  foregroundColor: AppColors.primary,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                                label: const Text('My Orders', style: TextStyle(fontWeight: FontWeight.bold)),
+                                onPressed: () => context.push('/my-orders'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryLight.withOpacity(0.1),
+                                  foregroundColor: AppColors.primary,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                icon: const Icon(Icons.savings_outlined, size: 18),
+                                label: const Text('My Kikoba', style: TextStyle(fontWeight: FontWeight.bold)),
+                                onPressed: () => context.push('/my-kikoba'),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        
-                        // Categories
+                        const SizedBox(height: 24),
+
+                        // Compact Category Shortcuts
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _buildCategoryChip('All', 'Zote'),
-                              const SizedBox(width: 8),
-                              _buildCategoryChip('KIWANJA', 'Viwanja'),
-                              const SizedBox(width: 8),
-                              _buildCategoryChip('NYUMBA', 'Nyumba'),
-                              const SizedBox(width: 8),
-                              _buildCategoryChip('GARI', 'Magari'),
+                              _buildCategoryShortcut('All', 'Yote'),
+                              const SizedBox(width: 12),
+                              _buildCategoryShortcut('NYUMBA', 'Nyumba'),
+                              const SizedBox(width: 12),
+                              _buildCategoryShortcut('KIWANJA', 'Viwanja'),
+                              const SizedBox(width: 12),
+                              _buildCategoryShortcut('GARI', 'Magari'),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 8), // Replaced the extra space with a smaller one, since list has padding
+                        const SizedBox(height: 24),
+                        
+                        // Featured Section Header
+                        Text(
+                          'dashboard.available_properties'.tr(),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                       ],
                     ),
                   ),
@@ -329,11 +432,11 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
                     }
 
                     if (filtered.isEmpty) {
-                      return const SliverFillRemaining(
+                      return SliverFillRemaining(
                         child: Center(
                           child: Text(
-                            'No properties found in this category.',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            'explore.no_results'.tr(),
+                            style: const TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
                       );
@@ -375,25 +478,26 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
     );
   }
 
-  Widget _buildCategoryChip(String value, String label) {
+  Widget _buildCategoryShortcut(String value, String label) {
     final isSelected = _selectedCategory == value;
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.accent : Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
           boxShadow: isSelected
-              ? [BoxShadow(color: AppColors.accent.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
-              : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+              ? [BoxShadow(color: AppColors.accent.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]
+              : [],
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.white : AppColors.textPrimary,
           ),
         ),
       ),

@@ -45,6 +45,33 @@ class ActivityRepository {
     return list;
   }
 
+  Stream<List<ActivityModel>> getActivitiesStream({String? branchId, int limit = 100}) {
+    final supabase = _supabase;
+    if (supabase == null) return Stream.value([]);
+
+    var stream = supabase.from('audit_logs').stream(primaryKey: ['id']).order('created_at', ascending: false).limit(limit);
+
+    return stream.map((event) {
+      var filtered = event;
+      if (branchId != null && branchId.isNotEmpty) {
+        filtered = event.where((map) => map['branch_id'] == branchId).toList();
+      }
+      return filtered.map((map) {
+        return ActivityModel(
+          id: (map['id'] ?? '').toString(),
+          actorId: (map['actor_id'] ?? '').toString(),
+          actorName: (map['actor_name'] ?? 'System User').toString(),
+          action: (map['action_type'] ?? 'ACTIVITY').toString(),
+          entityType: (map['target_entity_type'] ?? 'Entity').toString(),
+          entityId: (map['target_entity_id'] ?? '').toString(),
+          description: (map['description'] ?? '').toString(),
+          branchId: (map['branch_id'] ?? 'branch_dar').toString(),
+          createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
+        );
+      }).toList();
+    });
+  }
+
   Future<void> logActivity(ActivityModel activity) async {
     try {
       final supabase = _supabase;

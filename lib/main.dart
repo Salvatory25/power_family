@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'core/constants/app_constants.dart';
 
 
@@ -11,6 +12,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
 
   try {
     await dotenv.load(fileName: ".env");
@@ -32,8 +34,14 @@ void main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: PowerFamilyApp(),
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('sw')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('sw'),
+      startLocale: const Locale('sw'),
+      child: const ProviderScope(
+        child: PowerFamilyApp(),
+      ),
     ),
   );
 }
@@ -46,6 +54,9 @@ class PowerFamilyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

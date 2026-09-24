@@ -161,7 +161,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _profileRow('Assigned Role', AppConstants.getRoleLabel(user?.role ?? '')),
                     _profileRow('Assigned Branch', '${branch.name} (${branch.code})'),
                     _profileRow('Phone Number', user?.phone ?? 'N/A'),
-                    _profileRow('User ID', user?.uid ?? 'N/A'),
                   ],
                 ),
               ),

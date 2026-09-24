@@ -11,6 +11,7 @@ import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../dashboard/dashboard_providers.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 final userRepositoryProvider = Provider((ref) => UserRepository());
 final branchRepositoryProvider = Provider((ref) => BranchRepository());
@@ -77,26 +78,26 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Add New Staff Member',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    'user_list.add_new_staff'.tr(),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Administrator registration for new employees, password creation, and role assignment.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  Text(
+                    'user_list.add_staff_desc'.tr(),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 16),
-                  AppTextField(label: 'Full Name', hint: 'e.g. John Mgaya', controller: nameCtrl),
+                  AppTextField(label: 'user_list.full_name'.tr(), hint: 'e.g. John Mgaya', controller: nameCtrl),
                   const SizedBox(height: 12),
-                  AppTextField(label: 'Email Address', hint: 'e.g. john@powerfamily.co.tz', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
+                  AppTextField(label: 'user_list.email'.tr(), hint: 'e.g. john@powerfamily.co.tz', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
                   const SizedBox(height: 12),
-                  AppTextField(label: 'Phone Number', hint: '+255 7XX XXX XXX', controller: phoneCtrl, keyboardType: TextInputType.phone),
+                  AppTextField(label: 'user_list.phone'.tr(), hint: '+255 7XX XXX XXX', controller: phoneCtrl, keyboardType: TextInputType.phone),
                   const SizedBox(height: 12),
 
                   // Initial Password Set By Admin
                   AppTextField(
-                    label: 'Initial Password for User',
+                    label: 'user_list.password'.tr(),
                     hint: 'e.g. Password123',
                     controller: passwordCtrl,
                     obscureText: isPasswordObscured,
@@ -115,7 +116,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   ),
                   const SizedBox(height: 14),
 
-                  const Text('Assign System Role:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('user_list.assign_role'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedRole,
@@ -128,7 +129,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   const SizedBox(height: 14),
 
                   if (selectedRole != AppConstants.roleSuperAdmin && selectedRole != AppConstants.roleSystemAdmin) ...[
-                    const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    Text('user_list.assign_branch'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: validBranchValue,
@@ -141,25 +142,25 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                     const SizedBox(height: 14),
                   ],
 
-                  const Text('Account Status:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('user_list.account_status'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedStatus,
                     decoration: const InputDecoration(filled: true),
-                    items: const [
-                      DropdownMenuItem(value: AppConstants.statusActive, child: Text('Active (Approved)')),
-                      DropdownMenuItem(value: AppConstants.statusPending, child: Text('Pending Approval')),
+                    items: [
+                      DropdownMenuItem(value: AppConstants.statusActive, child: Text('user_list.active'.tr())),
+                      DropdownMenuItem(value: AppConstants.statusPending, child: Text('user_list.pending'.tr())),
                     ],
                     onChanged: (val) => setModalState(() => selectedStatus = val!),
                   ),
                   const SizedBox(height: 24),
 
                   AppButton(
-                    text: 'Create Staff Account',
+                    text: 'user_list.create_account'.tr(),
                     onPressed: () async {
                       if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty || passwordCtrl.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please fill in Full Name, Email, and Password.')),
+                          SnackBar(content: Text('user_list.fill_required'.tr())),
                         );
                         return;
                       }
@@ -246,29 +247,29 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                     ],
                   ),
                   const SizedBox(height: 14),
-                  AppTextField(label: 'Full Name', hint: 'Full Name', controller: nameCtrl),
+                  AppTextField(label: 'user_list.full_name'.tr(), hint: 'Full Name', controller: nameCtrl),
                   const SizedBox(height: 12),
-                  AppTextField(label: 'Email Address', hint: 'Email', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
+                  AppTextField(label: 'user_list.email'.tr(), hint: 'Email', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
                   const SizedBox(height: 12),
-                  AppTextField(label: 'Phone Number', hint: 'Phone', controller: phoneCtrl, keyboardType: TextInputType.phone),
+                  AppTextField(label: 'user_list.phone'.tr(), hint: 'Phone', controller: phoneCtrl, keyboardType: TextInputType.phone),
                   const SizedBox(height: 14),
 
-                  const Text('Account Status:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('user_list.account_status'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedStatus,
                     decoration: const InputDecoration(filled: true),
-                    items: const [
-                      DropdownMenuItem(value: AppConstants.statusActive, child: Text('Active (Approved)')),
-                      DropdownMenuItem(value: AppConstants.statusPending, child: Text('Pending Approval')),
-                      DropdownMenuItem(value: AppConstants.statusSuspended, child: Text('Suspended')),
-                      DropdownMenuItem(value: AppConstants.statusDisabled, child: Text('Disabled')),
+                    items: [
+                      DropdownMenuItem(value: AppConstants.statusActive, child: Text('user_list.active'.tr())),
+                      DropdownMenuItem(value: AppConstants.statusPending, child: Text('user_list.pending'.tr())),
+                      DropdownMenuItem(value: AppConstants.statusSuspended, child: Text('user_list.suspended'.tr())),
+                      DropdownMenuItem(value: AppConstants.statusDisabled, child: Text('user_list.disabled'.tr())),
                     ],
                     onChanged: (val) => setModalState(() => selectedStatus = val!),
                   ),
                   const SizedBox(height: 14),
 
-                  const Text('Assign System Role:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('user_list.assign_role'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedRole,
@@ -281,7 +282,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   const SizedBox(height: 14),
 
                   if (selectedRole != AppConstants.roleSuperAdmin && selectedRole != AppConstants.roleSystemAdmin) ...[
-                    const Text('Assign Primary Branch:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    Text('user_list.assign_branch'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       value: validBranchValue,
@@ -297,7 +298,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                   ],
 
                   AppButton(
-                    text: 'Update Staff Account',
+                    text: 'user_list.update_account'.tr(),
                     onPressed: () async {
                       final isAdmin = selectedRole == AppConstants.roleSuperAdmin || selectedRole == AppConstants.roleSystemAdmin;
                       
@@ -336,8 +337,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
   Future<void> _confirmDeleteUser(UserModel user) async {
     final confirm = await ConfirmDialog.show(
       context,
-      title: 'Delete Staff Member?',
-      message: 'Are you sure you want to delete ${user.fullName} (${user.email})? This action cannot be undone.',
+      title: 'user_list.delete_title'.tr(),
+      message: 'user_list.delete_msg'.tr(),
       isDestructive: true,
     );
 
@@ -361,11 +362,11 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('User & Role Management'),
+        title: Text('user_list.title'.tr()),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add),
-            tooltip: 'Add Staff Member',
+            tooltip: 'user_list.add_staff_tooltip'.tr(),
             onPressed: () => _showAddStaffModal(branches),
           ),
         ],
@@ -374,16 +375,16 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
           indicatorColor: AppColors.accent,
           labelColor: Colors.white,
           unselectedLabelColor: AppColors.textMuted,
-          tabs: const [
-            Tab(text: 'Pending Approvals'),
-            Tab(text: 'All Organization Staff'),
+          tabs: [
+            Tab(text: 'user_list.pending_tab'.tr()),
+            Tab(text: 'user_list.all_staff_tab'.tr()),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddStaffModal(branches),
         icon: const Icon(Icons.add),
-        label: const Text('Add Staff'),
+        label: Text('user_list.add_staff'.tr()),
         backgroundColor: AppColors.primary,
       ),
 
@@ -395,7 +396,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
             child: TextField(
               controller: _searchCtrl,
               decoration: InputDecoration(
-                hintText: 'Search staff by name, email, role, or phone...',
+                hintText: 'user_list.search_hint'.tr(),
                 prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -450,7 +451,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
     if (users.isEmpty) {
       return Center(
         child: Text(
-          isPendingTab ? 'No pending user registration requests.' : 'No staff accounts found.',
+          isPendingTab ? 'user_list.no_pending'.tr() : 'user_list.no_staff'.tr(),
           style: const TextStyle(color: AppColors.textSecondary),
         ),
       );
@@ -482,7 +483,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
               ),
               title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               subtitle: Text(
-                'Role: ${AppConstants.getRoleLabel(u.role)}\nBranch: $branchName • ${u.email}',
+                '${'user_list.role'.tr()}: ${AppConstants.getRoleLabel(u.role)}\n${'user_list.branch'.tr()}: $branchName • ${u.email}',
                 style: const TextStyle(fontSize: 12),
               ),
               trailing: Row(
@@ -511,7 +512,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       icon: const Icon(Icons.check_circle_rounded, size: 14),
-                      label: const Text('Approve', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      label: Text('user_list.approve'.tr(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     )
                   else
                     StatusBadge(status: u.status, fontSize: 10, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2)),
@@ -531,33 +532,33 @@ class _UserListScreenState extends ConsumerState<UserListScreen> with SingleTick
                     },
                     itemBuilder: (ctx) => [
                       if (isPendingTab)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'approve',
                           child: Row(
                             children: [
-                              Icon(Icons.check_circle_outline, size: 16, color: AppColors.statusAvailable),
-                              SizedBox(width: 8),
-                              Text('Approve Account'),
+                              const Icon(Icons.check_circle_outline, size: 16, color: AppColors.statusAvailable),
+                              const SizedBox(width: 8),
+                              Text('user_list.approve_account'.tr()),
                             ],
                           ),
                         ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, size: 16, color: AppColors.primary),
-                            SizedBox(width: 8),
-                            Text('Edit Staff'),
+                            const Icon(Icons.edit, size: 16, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Text('user_list.edit_staff'.tr()),
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline, size: 16, color: AppColors.statusSold),
-                            SizedBox(width: 8),
-                            Text('Delete Account', style: TextStyle(color: AppColors.statusSold)),
+                            const Icon(Icons.delete_outline, size: 16, color: AppColors.statusSold),
+                            const SizedBox(width: 8),
+                            Text('user_list.delete_account'.tr(), style: const TextStyle(color: AppColors.statusSold)),
                           ],
                         ),
                       ),

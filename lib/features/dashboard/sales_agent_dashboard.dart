@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/customer_model.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
@@ -63,15 +63,28 @@ class SalesAgentDashboard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back, ${user?.fullName ?? "Sales Agent"}',
+                          '${'sales_agent.welcome_back'.tr()}, ${user?.fullName ?? "sales_agent.role_title".tr()}',
                           style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${assignedLeads.length} Active Leads • ${assignedCustomers.length} Assigned Customers',
+                          '${assignedLeads.length} ${'sales_agent.active_leads'.tr()} • ${assignedCustomers.length} ${'sales_agent.assigned_customers'.tr()}',
                           style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
                         ),
                       ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => context.push('/chat'),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.18)),
+                      ),
+                      child: const Icon(Icons.forum_outlined, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -81,9 +94,9 @@ class SalesAgentDashboard extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
 
-          const Text(
-            'Sales Performance & Tasks',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          Text(
+            'sales_agent.sales_performance'.tr(),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 10),
 
@@ -100,28 +113,28 @@ class SalesAgentDashboard extends ConsumerWidget {
                 childAspectRatio: ratio,
                 children: [
                   StatCard(
-                    title: 'Assigned Leads',
+                    title: 'sales_agent.assigned_leads'.tr(),
                     value: assignedLeads.length.toString(),
                     icon: Icons.trending_up,
                     color: AppColors.accent,
                     onTap: () => context.push('/leads'),
                   ),
                   StatCard(
-                    title: 'My Customers',
+                    title: 'sales_agent.my_customers'.tr(),
                     value: assignedCustomers.length.toString(),
                     icon: Icons.people_alt_outlined,
                     color: AppColors.primary,
                     onTap: () => context.push('/customers'),
                   ),
                   StatCard(
-                    title: 'Assigned Properties',
+                    title: 'sales_agent.assigned_properties'.tr(),
                     value: assignedProps.length.toString(),
                     icon: Icons.holiday_village_outlined,
                     color: AppColors.statusUnderProcess,
                     onTap: () => context.push('/properties'),
                   ),
                   StatCard(
-                    title: 'My Deals Closed',
+                    title: 'sales_agent.my_deals_closed'.tr(),
                     value: mySales.length.toString(),
                     icon: Icons.check_circle_outline,
                     color: AppColors.statusAvailable,
@@ -138,13 +151,13 @@ class SalesAgentDashboard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Customer Follow-ups Needed',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              Text(
+                'sales_agent.customer_follow_ups'.tr(),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
               TextButton(
                 onPressed: () => context.push('/leads'),
-                child: const Text('Manage Leads'),
+                child: Text('sales_agent.manage_leads'.tr()),
               ),
             ],
           ),
@@ -158,7 +171,7 @@ class SalesAgentDashboard extends ConsumerWidget {
             itemBuilder: (context, index) {
               final lead = assignedLeads[index];
               final custMatching = allCustomers.where((c) => c.id == lead.customerId).toList();
-              final custName = custMatching.isNotEmpty ? custMatching.first.fullName : 'Client';
+              final custName = custMatching.isNotEmpty ? custMatching.first.fullName : 'sales_agent.client'.tr();
               final custPhone = custMatching.isNotEmpty ? custMatching.first.phone : '';
 
 
@@ -170,7 +183,7 @@ class SalesAgentDashboard extends ConsumerWidget {
                   ),
                   title: Text(custName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   subtitle: Text(
-                    'Notes: ${lead.notes}\nFollow-up: ${Formatters.formatDate(lead.nextFollowUp)}',
+                    '${'sales_agent.notes'.tr()}: ${lead.notes}\n${'sales_agent.follow_up'.tr()}: ${Formatters.formatDate(lead.nextFollowUp)}',
                     style: const TextStyle(fontSize: 12),
                   ),
                   trailing: StatusBadge(status: lead.status),

@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../../widgets/header_background.dart';
 import '../../widgets/stat_card.dart';
 import '../auth/auth_controller.dart';
 import 'dashboard_providers.dart';
+import '../notifications/notification_controller.dart';
 
 class SuperAdminDashboard extends ConsumerWidget {
   const SuperAdminDashboard({super.key});
@@ -16,11 +18,11 @@ class SuperAdminDashboard extends ConsumerWidget {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'GOOD MORNING';
+      return 'admin.good_morning'.tr();
     } else if (hour < 17) {
-      return 'GOOD AFTERNOON';
+      return 'admin.good_afternoon'.tr();
     } else {
-      return 'GOOD EVENING';
+      return 'admin.good_evening'.tr();
     }
   }
 
@@ -32,8 +34,9 @@ class SuperAdminDashboard extends ConsumerWidget {
     final customers = ref.watch(customersProvider).value ?? [];
     final leads = ref.watch(leadsProvider).value ?? [];
     final sales = ref.watch(salesProvider).value ?? [];
-    final activities = ref.watch(activitiesProvider).value ?? [];
+    final activities = ref.watch(activitiesStreamProvider).value ?? [];
     final branches = ref.watch(branchesProvider).value ?? [];
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
     final availableProps = properties.where((p) => p.status == AppConstants.propertyAvailable).length;
     final soldProps = properties.where((p) => p.status == AppConstants.propertySold).length;
@@ -160,7 +163,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              user?.fullName ?? 'System Administrator',
+                              user?.fullName ?? 'admin.system_admin'.tr(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -190,30 +193,48 @@ class SuperAdminDashboard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Stack(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(9),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white.withOpacity(0.18)),
-                                ),
-                                child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
+                          InkWell(
+                            onTap: () => context.push('/chat'),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.12),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.18)),
                               ),
-                              Positioned(
-                                right: 8,
-                                top: 8,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.accent,
+                              child: const Icon(Icons.forum_outlined, color: Colors.white, size: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => context.push('/notifications'),
+                            child: Stack(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(9),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.12),
                                     shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white.withOpacity(0.18)),
                                   ),
+                                  child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 20),
                                 ),
-                              ),
-                            ],
+                                if (unreadCount > 0)
+                                  Positioned(
+                                    right: 4,
+                                    top: 4,
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.accent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -228,9 +249,9 @@ class SuperAdminDashboard extends ConsumerWidget {
                       children: [
                         _buildHeaderPill(Icons.payments_outlined, Formatters.formatCurrency(totalRevenue), AppColors.accent),
                         const SizedBox(width: 8),
-                        _buildHeaderPill(Icons.store_mall_directory_outlined, '${branches.length} Branches', Colors.white),
+                        _buildHeaderPill(Icons.store_mall_directory_outlined, '${branches.length} ${context.locale.languageCode == 'sw' ? 'admin.company_branches'.tr().split(' ').first : 'admin.company_branches'.tr().split(' ').last}', Colors.white),
                         const SizedBox(width: 8),
-                        _buildHeaderPill(Icons.people_outline, '${users.length} Users', Colors.white),
+                        _buildHeaderPill(Icons.people_outline, '${users.length} ${context.locale.languageCode == 'sw' ? 'admin.system_users'.tr().split(' ').first : 'admin.system_users'.tr().split(' ').last}', Colors.white),
                       ],
                     ),
                   ),
@@ -289,13 +310,13 @@ class SuperAdminDashboard extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '$pendingUsers Pending User Registrations',
+                                    '$pendingUsers ${'admin.pending_registrations'.tr()}',
                                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
                                   ),
                                   const SizedBox(height: 2),
-                                  const Text(
-                                    'Tap to review, assign roles, and activate staff accounts.',
-                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                  Text(
+                                    'admin.review_accounts'.tr(),
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                                   ),
                                 ],
                               ),
@@ -326,14 +347,14 @@ class SuperAdminDashboard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Administrator Management Controls',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.primary),
+                        Text(
+                          'admin.mgmt_controls'.tr(),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.primary),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Manage organization structure, add company branches, and register staff across roles.',
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        Text(
+                          'admin.mgmt_desc'.tr(),
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 14),
                         Row(
@@ -348,7 +369,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                                 ),
                                 onPressed: () => context.push('/branches'),
                                 icon: const Icon(Icons.add_business_rounded, size: 18),
-                                label: const Text('Add Branch', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                label: Text('admin.add_branch'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -362,7 +383,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                                 ),
                                 onPressed: () => context.push('/users'),
                                 icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                                label: const Text('Add Staff', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                label: Text('admin.add_staff'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
@@ -373,9 +394,9 @@ class SuperAdminDashboard extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // Key System Performance Stats Grid
-                  const Text(
-                    'Executive Performance',
-                    style: TextStyle(
+                  Text(
+                    'admin.exec_performance'.tr(),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
@@ -397,46 +418,46 @@ class SuperAdminDashboard extends ConsumerWidget {
                         childAspectRatio: ratio,
                         children: [
                           StatCard(
-                            title: 'Total Revenue',
+                            title: 'admin.total_revenue'.tr(),
                             value: Formatters.formatCurrency(totalRevenue),
                             icon: Icons.payments_outlined,
                             color: AppColors.statusAvailable,
-                            subtitle: '${sales.length} Completed Sales',
+                            subtitle: '${sales.length} ${'admin.completed_sales'.tr()}',
                             onTap: () => context.push('/sales'),
                           ),
                           StatCard(
-                            title: 'Total Properties',
+                            title: 'admin.total_properties'.tr(),
                             value: properties.length.toString(),
                             icon: Icons.holiday_village_outlined,
                             color: AppColors.primary,
-                            subtitle: '$availableProps Available | $soldProps Sold',
+                            subtitle: '$availableProps ${'admin.available'.tr()} | $soldProps ${'admin.sold'.tr()}',
                             onTap: () => context.push('/properties'),
                           ),
                           StatCard(
-                            title: 'Company Branches',
+                            title: 'admin.company_branches'.tr(),
                             value: branches.length.toString(),
                             icon: Icons.store_mall_directory_outlined,
                             color: AppColors.accent,
-                            subtitle: '${branches.where((b) => b.status == 'active').length} Active Branches',
+                            subtitle: '${branches.where((b) => b.status == 'active').length} ${'admin.active_branches'.tr()}',
                             onTap: () => context.push('/branches'),
                           ),
                           StatCard(
-                            title: 'System Users',
+                            title: 'admin.system_users'.tr(),
                             value: users.length.toString(),
                             icon: Icons.people_outline,
                             color: AppColors.statusUnderProcess,
-                            subtitle: '$pendingUsers Pending Approval',
+                            subtitle: '$pendingUsers ${'admin.pending_approval'.tr()}',
                             onTap: () => context.push('/users'),
                           ),
                           StatCard(
-                            title: 'Customers',
+                            title: 'admin.customers'.tr(),
                             value: customers.length.toString(),
                             icon: Icons.person_search_outlined,
                             color: AppColors.statusSurveying,
                             onTap: () => context.push('/customers'),
                           ),
                           StatCard(
-                            title: 'Active Leads',
+                            title: 'admin.active_leads'.tr(),
                             value: leads.length.toString(),
                             icon: Icons.trending_up,
                             color: AppColors.statusReserved,
@@ -453,9 +474,9 @@ class SuperAdminDashboard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Property Portfolio',
-                        style: TextStyle(
+                      Text(
+                        'admin.portfolio'.tr(),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
@@ -465,7 +486,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                       TextButton.icon(
                         onPressed: () => context.push('/properties'),
                         icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                        label: const Text('View All', style: TextStyle(fontWeight: FontWeight.w700)),
+                        label: Text('admin.view_all'.tr(), style: const TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),
@@ -475,11 +496,11 @@ class SuperAdminDashboard extends ConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _propertyTypeChip(context, 'Viwanja (Land)', properties.where((p) => p.type == 'kiwanja').length, Icons.landscape),
+                        _propertyTypeChip(context, 'explore.filter_plots'.tr(), properties.where((p) => p.type == 'kiwanja').length, Icons.landscape),
                         const SizedBox(width: 12),
-                        _propertyTypeChip(context, 'Nyumba (Houses)', properties.where((p) => p.type == 'nyumba').length, Icons.home_work),
+                        _propertyTypeChip(context, 'explore.filter_houses'.tr(), properties.where((p) => p.type == 'nyumba').length, Icons.home_work),
                         const SizedBox(width: 12),
-                        _propertyTypeChip(context, 'Magari (Vehicles)', properties.where((p) => p.type == 'gari').length, Icons.directions_car),
+                        _propertyTypeChip(context, 'explore.filter_cars'.tr(), properties.where((p) => p.type == 'gari').length, Icons.directions_car),
                       ],
                     ),
                   ),
@@ -490,22 +511,19 @@ class SuperAdminDashboard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Recent System Activities',
-                        style: TextStyle(
+                      Text(
+                        'admin.recent_activities'.tr(),
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.textPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: AppColors.surfaceVariant,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.history_rounded, size: 16, color: AppColors.textSecondary),
+                      TextButton.icon(
+                        onPressed: () => context.push('/activity-report'),
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                        label: Text('admin.full_report'.tr(), style: const TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),
@@ -611,7 +629,7 @@ class SuperAdminDashboard extends ConsumerWidget {
               children: [
                 Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
-                Text('$count Items', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                Text('$count ${'admin.items'.tr()}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
               ],
             ),
           ],

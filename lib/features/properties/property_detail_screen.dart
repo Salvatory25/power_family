@@ -11,6 +11,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/confirm_dialog.dart';
 import 'property_list_screen.dart';
+import '../auth/auth_controller.dart';
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   final String propertyId;
@@ -24,6 +25,14 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   PropertyModel? _property;
   bool _isLoading = true;
+  int _currentImageIndex = 0;
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -140,6 +149,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final branchName = branchMatches.isNotEmpty ? branchMatches.first.name : 'Main HQ';
     final agentMatches = users.where((u) => u.uid == p.assignedAgentId).toList();
     final agentName = agentMatches.isNotEmpty ? agentMatches.first.fullName : 'Unassigned Agent';
+    final user = ref.watch(authControllerProvider).value;
+    final isCustomer = user?.role.toUpperCase() == AppConstants.roleCustomer;
 
 
     return Scaffold(
@@ -165,13 +176,91 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Main Image Carousel Banner
-            Container(
-              height: 220,
+            SizedBox(
+              height: 250,
               width: double.infinity,
-              color: AppColors.primaryLight,
               child: p.images.isNotEmpty
-                  ? Image.network(p.images.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.apartment, size: 64, color: Colors.white38))
-                  : const Icon(Icons.apartment, size: 64, color: Colors.white38),
+                  ? Stack(
+                      children: [
+                        PageView.builder(
+                          controller: _pageController,
+                          itemCount: p.images.length,
+                          onPageChanged: (idx) => setState(() => _currentImageIndex = idx),
+                          itemBuilder: (ctx, idx) {
+                            return Image.network(
+                              p.images[idx],
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: AppColors.primaryLight,
+                                child: const Icon(Icons.apartment, size: 64, color: Colors.white38),
+                              ),
+                            );
+                          },
+                        ),
+                        // Web Navigation Arrows Overlay
+                        if (p.images.length > 1)
+                          Positioned.fill(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 12.0),
+                                  child: CircleAvatar(
+                                    backgroundColor: Colors.black45,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                                      onPressed: () {
+                                        if (_currentImageIndex > 0) {
+                                          _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 12.0),
+                                  child: CircleAvatar(
+                                    backgroundColor: Colors.black45,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
+                                      onPressed: () {
+                                        if (_currentImageIndex < p.images.length - 1) {
+                                          _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (p.images.length > 1)
+                          Positioned(
+                            bottom: 12,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                p.images.length,
+                                (idx) => Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  width: _currentImageIndex == idx ? 12 : 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: _currentImageIndex == idx ? Colors.white : Colors.white54,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    )
+                  : Container(
+                      color: AppColors.primaryLight,
+                      child: const Center(child: Icon(Icons.apartment, size: 64, color: Colors.white38)),
+                    ),
             ),
 
             Padding(
@@ -237,11 +326,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           _specRow('Land Use', p.landUse ?? 'N/A'),
                           _specRow('Survey Status', p.surveyStatus ?? 'N/A'),
                           _specRow('Registration Status', p.registrationStatus ?? 'N/A'),
+                          if (p.documentation != null) _specRow('Documentation', p.documentation!),
                         ],
                         if (p.type == AppConstants.typeNyumba) ...[
+                          if (p.houseType != null) _specRow('Type', p.houseType!),
                           _specRow('Bedrooms', '${p.bedrooms ?? 0} Rooms'),
                           _specRow('Bathrooms', '${p.bathrooms ?? 0} Baths'),
                           _specRow('Property Size', p.size ?? 'N/A'),
+                          if (p.houseCondition != null) _specRow('Condition', p.houseCondition!),
                         ],
                         if (p.type == AppConstants.typeGari) ...[
                           _specRow('Make & Model', '${p.vehicleMake ?? ""} ${p.vehicleModel ?? ""}'),
@@ -249,6 +341,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           _specRow('Registration Number', p.vehicleRegistration ?? 'N/A'),
                           _specRow('Mileage', p.vehicleMileage ?? 'N/A'),
                           _specRow('Condition', p.vehicleCondition ?? 'N/A'),
+                          if (p.fuelType != null) _specRow('Fuel Type', p.fuelType!),
+                          if (p.transmission != null) _specRow('Transmission', p.transmission!),
+                          if (p.bodyType != null) _specRow('Body Type', p.bodyType!),
+                          if (p.color != null) _specRow('Color', p.color!),
                         ],
                       ],
                     ),
@@ -283,10 +379,19 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  AppButton(
-                    text: 'Change Property Status',
-                    onPressed: _showStatusUpdateModal,
-                  ),
+                  if (isCustomer && p.status == AppConstants.propertyAvailable)
+                    AppButton(
+                      text: 'Get This Property',
+                      onPressed: () {
+                        context.push('/orders/acquire', extra: p);
+                      },
+                    ),
+
+                  if (!isCustomer)
+                    AppButton(
+                      text: 'Change Property Status',
+                      onPressed: _showStatusUpdateModal,
+                    ),
                 ],
               ),
             ),

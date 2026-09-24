@@ -10,6 +10,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../dashboard/dashboard_providers.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 final branchRepositoryProvider = Provider((ref) => BranchRepository());
 
@@ -72,16 +73,16 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    branch == null ? 'Create New Branch' : 'Edit Branch Details',
+                    branch == null ? 'branch_list.create_new'.tr() : 'branch_list.edit_details'.tr(),
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  AppTextField(label: 'Branch Name', hint: 'e.g. Kinondoni Sub-Branch', controller: nameCtrl),
+                  AppTextField(label: 'branch_list.branch_name'.tr(), hint: 'branch_list.name_hint'.tr(), controller: nameCtrl),
                   const SizedBox(height: 12),
-                  AppTextField(label: 'Branch Code', hint: 'e.g. PF-KIN', controller: codeCtrl),
+                  AppTextField(label: 'branch_list.branch_code'.tr(), hint: 'branch_list.code_hint'.tr(), controller: codeCtrl),
                   const SizedBox(height: 14),
 
-                  const Text('Select Region:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('branch_list.select_region'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedRegion,
@@ -99,7 +100,7 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  const Text('Select District / Municipal:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('branch_list.select_district'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: validDistrict,
@@ -116,20 +117,20 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
                   const SizedBox(height: 14),
 
                   AppTextField(
-                    label: 'Street / Physical Address (Optional)',
-                    hint: 'e.g. Sam Nujoma Road, Plot 42',
+                    label: 'branch_list.street'.tr(),
+                    hint: 'branch_list.street_hint'.tr(),
                     controller: streetCtrl,
                   ),
                   const SizedBox(height: 12),
-                  AppTextField(label: 'Phone Number', hint: '+255 7XX XXX XXX', controller: phoneCtrl, keyboardType: TextInputType.phone),
+                  AppTextField(label: 'branch_list.phone'.tr(), hint: 'branch_list.phone_hint'.tr(), controller: phoneCtrl, keyboardType: TextInputType.phone),
                   const SizedBox(height: 12),
-                  AppTextField(label: 'Email', hint: 'branch@powerfamily.co.tz', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
+                  AppTextField(label: 'branch_list.email'.tr(), hint: 'branch_list.email_hint'.tr(), controller: emailCtrl, keyboardType: TextInputType.emailAddress),
                   const SizedBox(height: 20),
                   AppButton(
-                    text: branch == null ? 'Save Branch' : 'Update Branch',
+                    text: branch == null ? 'branch_list.save_branch'.tr() : 'branch_list.update_branch'.tr(),
                     onPressed: () async {
                       if (nameCtrl.text.isEmpty || codeCtrl.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Branch Name and Code are required.')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('branch_list.name_code_req'.tr())));
                         return;
                       }
 
@@ -165,7 +166,7 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
                       if (context.mounted) {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(branch == null ? 'Branch created successfully.' : 'Branch updated successfully.')),
+                          SnackBar(content: Text(branch == null ? 'branch_list.created_success'.tr() : 'branch_list.updated_success'.tr())),
                         );
                       }
                     },
@@ -187,7 +188,7 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Branch Management'),
+        title: Text('branch_list.title'.tr()),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -204,12 +205,12 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('No company branches found.', style: TextStyle(color: AppColors.textSecondary)),
+                  Text('branch_list.no_branches'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
                     onPressed: () => _showBranchForm(),
                     icon: const Icon(Icons.add),
-                    label: const Text('Create First Branch'),
+                    label: Text('branch_list.create_first'.tr()),
                   ),
                 ],
               ),
@@ -256,14 +257,14 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Text('Code: ${b.code} • ${b.location}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      Text('${'branch_list.code'.tr()}: ${b.code} • ${b.location}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       const SizedBox(height: 4),
-                      Text('Phone: ${b.phone} | Email: ${b.email}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      Text('${'branch_list.phone'.tr()}: ${b.phone} | ${'branch_list.email'.tr()}: ${b.email}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       const Divider(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('$staffCount Staff Members • $propCount Properties', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text('$staffCount ${'branch_list.staff_members'.tr()} • $propCount ${'branch_list.properties'.tr()}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                           Row(
                             children: [
                               IconButton(
@@ -279,8 +280,8 @@ class _BranchListScreenState extends ConsumerState<BranchListScreen> {
                                 onPressed: () async {
                                   final confirm = await ConfirmDialog.show(
                                     context,
-                                    title: b.status == 'active' ? 'Deactivate Branch?' : 'Activate Branch?',
-                                    message: 'Are you sure you want to change the status of ${b.name}?',
+                                    title: b.status == 'active' ? 'branch_list.deactivate'.tr() : 'branch_list.activate'.tr(),
+                                    message: '${'branch_list.confirm_status_change'.tr()} ${b.name}?',
                                     isDestructive: b.status == 'active',
                                   );
                                   if (confirm == true) {

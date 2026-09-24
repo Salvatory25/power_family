@@ -51,10 +51,25 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   final _vehicleYearCtrl = TextEditingController(text: '2021');
   final _vehicleRegCtrl = TextEditingController(text: 'T 992 EFG');
 
+  // New Fields
+  String _selectedFuelType = 'Petrol';
+  String _selectedTransmission = 'Automatic';
+  String _selectedBodyType = 'SUV';
+  String _selectedHouseType = 'House';
+  String _selectedHouseCondition = 'New';
+  String _selectedDocumentation = 'Title Deed';
+  String _selectedVehicleCondition = 'Used';
+  final _colorCtrl = TextEditingController(text: 'White');
+  final _mileageCtrl = TextEditingController(text: '0');
+
+  // Acquisition Plans
+  List<String> _allowedAcquisitionPlans = ['FULL_PAYMENT'];
+
   String _selectedBranch = 'branch_dar';
   String _selectedStatus = AppConstants.propertyAvailable;
-  XFile? _selectedImage;
-  Uint8List? _selectedImageBytes;
+  List<XFile> _selectedImages = [];
+  List<Uint8List> _selectedImagesBytes = [];
+  List<String> _existingImages = [];
   bool _isUploading = false;
 
   @override
@@ -86,6 +101,20 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       _vehicleModelCtrl.text = p.vehicleModel ?? '';
       _vehicleYearCtrl.text = p.vehicleYear?.toString() ?? '';
       _vehicleRegCtrl.text = p.vehicleRegistration ?? '';
+      _selectedFuelType = p.fuelType ?? 'Petrol';
+      _selectedTransmission = p.transmission ?? 'Automatic';
+      _selectedBodyType = p.bodyType ?? 'SUV';
+      _selectedHouseType = p.houseType ?? 'House';
+      _selectedHouseCondition = p.houseCondition ?? 'New';
+      _selectedDocumentation = p.documentation ?? 'Title Deed';
+      _selectedVehicleCondition = p.vehicleCondition ?? 'Used';
+      _colorCtrl.text = p.color ?? '';
+      _mileageCtrl.text = p.vehicleMileage ?? '';
+      
+      if (p.allowedAcquisitionPlans.isNotEmpty) {
+        _allowedAcquisitionPlans = List.from(p.allowedAcquisitionPlans);
+      }
+      
       _selectedBranch = p.branchId.isNotEmpty ? p.branchId : 'branch_dar';
       _selectedStatus =
           [
@@ -95,6 +124,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
           ].contains(p.status)
           ? p.status
           : AppConstants.propertyAvailable;
+      if (p.images.isNotEmpty) {
+        _existingImages = List.from(p.images);
+      }
     }
   }
 
@@ -116,6 +148,8 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
     _vehicleModelCtrl.dispose();
     _vehicleYearCtrl.dispose();
     _vehicleRegCtrl.dispose();
+    _colorCtrl.dispose();
+    _mileageCtrl.dispose();
     super.dispose();
   }
 
@@ -151,20 +185,21 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       return;
     }
 
-    List<String> finalImages = widget.propertyToEdit?.images.isNotEmpty == true
-        ? widget.propertyToEdit!.images
-        : [];
-    if (_selectedImageBytes != null && _selectedImage != null) {
-      final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_${_selectedImage!.name}';
-      final url = await repo.uploadPropertyImage(
-        _selectedImageBytes!,
-        fileName,
-      );
-      if (url != null) {
-        finalImages = [url];
+    List<String> finalImages = List.from(_existingImages);
+    
+    if (_selectedImagesBytes.isNotEmpty) {
+      for (int i = 0; i < _selectedImagesBytes.length; i++) {
+        final bytes = _selectedImagesBytes[i];
+        final file = _selectedImages[i];
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
+        final url = await repo.uploadPropertyImage(bytes, fileName);
+        if (url != null) {
+          finalImages.add(url);
+        }
       }
-    } else if (finalImages.isEmpty) {
+    }
+    
+    if (finalImages.isEmpty) {
       finalImages.add(
         'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80',
       );
@@ -217,8 +252,18 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       vehicleRegistration: _selectedType == AppConstants.typeGari
           ? _vehicleRegCtrl.text.trim()
           : null,
+      fuelType: _selectedType == AppConstants.typeGari ? _selectedFuelType : null,
+      transmission: _selectedType == AppConstants.typeGari ? _selectedTransmission : null,
+      bodyType: _selectedType == AppConstants.typeGari ? _selectedBodyType : null,
+      color: _selectedType == AppConstants.typeGari ? _colorCtrl.text.trim() : null,
+      vehicleMileage: _selectedType == AppConstants.typeGari ? _mileageCtrl.text.trim() : null,
+      vehicleCondition: _selectedType == AppConstants.typeGari ? _selectedVehicleCondition : null,
+      documentation: _selectedType == AppConstants.typeKiwanja ? _selectedDocumentation : null,
+      houseType: _selectedType == AppConstants.typeNyumba ? _selectedHouseType : null,
+      houseCondition: _selectedType == AppConstants.typeNyumba ? _selectedHouseCondition : null,
       images: finalImages,
       documents: ['Property_Title_Document.pdf'],
+      allowedAcquisitionPlans: _allowedAcquisitionPlans,
       status: _selectedStatus,
       branchId: isAdmin ? _selectedBranch : (user?.branchId ?? ''),
       createdBy: user?.uid ?? 'user_admin',
@@ -347,88 +392,96 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      InkWell(
-                        onTap: () async {
-                          final ImagePicker picker = ImagePicker();
-                          final XFile? image = await picker.pickImage(
-                            source: ImageSource.gallery,
-                          );
-                          if (image != null) {
-                            final bytes = await image.readAsBytes();
-                            setState(() {
-                              _selectedImage = image;
-                              _selectedImageBytes = bytes;
-                            });
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          height: 150,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.border,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: _selectedImageBytes != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.memory(
-                                    _selectedImageBytes!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
-                                )
-                              : (widget.propertyToEdit != null &&
-                                    widget.propertyToEdit!.images.isNotEmpty)
-                              ? Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        widget.propertyToEdit!.images.first,
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                      ),
-                                    ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black45,
+                      SizedBox(
+                        height: 120,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            ..._existingImages.map((url) => Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(url, width: 120, height: 120, fit: BoxFit.cover),
                                       ),
-                                      child: const Center(
-                                        child: Text(
-                                          'Tap to change image',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
+                                      Positioned(
+                                        top: 4, right: 4,
+                                        child: InkWell(
+                                          onTap: () => setState(() => _existingImages.remove(url)),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                            child: const Icon(Icons.close, size: 16, color: Colors.white),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                )
-                              : const Column(
+                                    ],
+                                  ),
+                                )),
+                            ..._selectedImagesBytes.asMap().entries.map((entry) {
+                               final index = entry.key;
+                               final bytes = entry.value;
+                               return Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.memory(bytes, width: 120, height: 120, fit: BoxFit.cover),
+                                      ),
+                                      Positioned(
+                                        top: 4, right: 4,
+                                        child: InkWell(
+                                          onTap: () => setState(() {
+                                            _selectedImages.removeAt(index);
+                                            _selectedImagesBytes.removeAt(index);
+                                          }),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                            child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                            }),
+                            InkWell(
+                              onTap: () async {
+                                final ImagePicker picker = ImagePicker();
+                                final List<XFile> images = await picker.pickMultiImage();
+                                if (images.isNotEmpty) {
+                                  for (var image in images) {
+                                    final bytes = await image.readAsBytes();
+                                    setState(() {
+                                      _selectedImages.add(image);
+                                      _selectedImagesBytes.add(bytes);
+                                    });
+                                  }
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+                                ),
+                                child: const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      Icons.add_photo_alternate_outlined,
-                                      size: 40,
-                                      color: AppColors.textSecondary,
-                                    ),
+                                    Icon(Icons.add_photo_alternate_outlined, size: 30, color: AppColors.textSecondary),
                                     SizedBox(height: 8),
-                                    Text(
-                                      'Tap to upload image',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
+                                    Text('Add Photo', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                                   ],
                                 ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -459,6 +512,13 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                           hint: 'e.g. Block C',
                           controller: _blockNoCtrl,
                         ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedDocumentation,
+                          decoration: const InputDecoration(labelText: 'Documentation', filled: true),
+                          items: ['Title Deed', 'Offer Letter', 'Other'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setState(() => _selectedDocumentation = val!),
+                        ),
                       ],
                       if (_selectedType == AppConstants.typeNyumba) ...[
                         AppTextField(
@@ -479,6 +539,20 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                           label: 'Property Size',
                           hint: 'e.g. 400 SQM',
                           controller: _sizeCtrl,
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedHouseType,
+                          decoration: const InputDecoration(labelText: 'Property Type', filled: true),
+                          items: ['House', 'Villa', 'Apartment'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setState(() => _selectedHouseType = val!),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedHouseCondition,
+                          decoration: const InputDecoration(labelText: 'Condition', filled: true),
+                          items: ['New', 'Used'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setState(() => _selectedHouseCondition = val!),
                         ),
                       ],
                       if (_selectedType == AppConstants.typeGari) ...[
@@ -505,6 +579,47 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                           label: 'Registration Number',
                           hint: 'T 884 EFG',
                           controller: _vehicleRegCtrl,
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedVehicleCondition,
+                          decoration: const InputDecoration(labelText: 'Condition', filled: true),
+                          items: ['New', 'Used', 'Excellent', 'Good'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setState(() => _selectedVehicleCondition = val!),
+                        ),
+                        const SizedBox(height: 12),
+                        AppTextField(
+                          label: 'Mileage (KM)',
+                          hint: 'e.g. 50000',
+                          controller: _mileageCtrl,
+                          keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedFuelType,
+                          decoration: const InputDecoration(labelText: 'Fuel Type', filled: true),
+                          items: ['Petrol', 'Diesel', 'Hybrid', 'Electric'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setState(() => _selectedFuelType = val!),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedTransmission,
+                          decoration: const InputDecoration(labelText: 'Transmission', filled: true),
+                          items: ['Automatic', 'Manual'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setState(() => _selectedTransmission = val!),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedBodyType,
+                          decoration: const InputDecoration(labelText: 'Body Type', filled: true),
+                          items: ['SUV', 'Sedan', 'Hatchback', 'Pickup', 'Van', 'Wagon', 'Other'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setState(() => _selectedBodyType = val!),
+                        ),
+                        const SizedBox(height: 12),
+                        AppTextField(
+                          label: 'Color',
+                          hint: 'e.g. Pearl White',
+                          controller: _colorCtrl,
                         ),
                       ],
                     ],
@@ -622,11 +737,56 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
 
                 // Step 4: Branch & Status Assignment
                 Step(
-                  title: const Text('Publish'),
+                  title: const Text('Publish & Options'),
                   isActive: _currentStep >= 3,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const Text(
+                        'Allowed Acquisition Plans:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          FilterChip(
+                            label: const Text('Full Payment'),
+                            selected: _allowedAcquisitionPlans.contains('FULL_PAYMENT'),
+                            onSelected: (val) {
+                              setState(() {
+                                if (val) _allowedAcquisitionPlans.add('FULL_PAYMENT');
+                                else _allowedAcquisitionPlans.remove('FULL_PAYMENT');
+                              });
+                            },
+                          ),
+                          FilterChip(
+                            label: const Text('Installment Plan'),
+                            selected: _allowedAcquisitionPlans.contains('INSTALLMENT'),
+                            onSelected: (val) {
+                              setState(() {
+                                if (val) _allowedAcquisitionPlans.add('INSTALLMENT');
+                                else _allowedAcquisitionPlans.remove('INSTALLMENT');
+                              });
+                            },
+                          ),
+                          FilterChip(
+                            label: const Text('Kikoba Package'),
+                            selected: _allowedAcquisitionPlans.contains('KIKOBA'),
+                            onSelected: (val) {
+                              setState(() {
+                                if (val) _allowedAcquisitionPlans.add('KIKOBA');
+                                else _allowedAcquisitionPlans.remove('KIKOBA');
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      
                       if (isAdmin) ...[
                         const Text(
                           'Branch Assignment:',

@@ -21,6 +21,7 @@ import '../../features/surveys/survey_list_screen.dart';
 import '../../features/sms/sms_compose_screen.dart';
 import '../../features/sms/sms_history_screen.dart';
 import '../../features/reports/reports_screen.dart';
+import '../../features/reports/realtime_activity_report_screen.dart';
 import '../../features/settings/profile_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/properties/digital_plot_map_screen.dart';
@@ -29,8 +30,23 @@ import '../../features/land_processing/land_processing_hub_screen.dart';
 import '../../features/marketing/ai_marketing_center_screen.dart';
 import '../../features/customer_dashboard/customer_dashboard_screen.dart';
 import '../../features/customer_dashboard/customer_property_details_screen.dart';
+import '../../features/notifications/notifications_screen.dart';
 import '../../models/property_model.dart';
 import '../constants/app_constants.dart';
+import '../../features/orders/screens/acquisition_flow_screen.dart';
+import '../../features/orders/screens/payment_submission_screen.dart';
+import '../../features/orders/screens/admin_order_management_screen.dart';
+import '../../features/kikoba/screens/admin_kikoba_dashboard.dart';
+import '../../features/orders/screens/my_orders_screen.dart';
+import '../../features/orders/screens/order_details_screen.dart';
+import '../../features/kikoba/screens/my_kikoba_screen.dart';
+import '../../models/order_model.dart';
+import '../../features/chat/screens/chat_list_screen.dart';
+import '../../features/chat/screens/chat_room_screen.dart';
+import '../../features/chat/screens/new_chat_screen.dart';
+import '../../models/chat_model.dart';
+
+
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -112,6 +128,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/customer-properties/details',
+        redirect: (context, state) => state.extra == null ? '/customer-dashboard' : null,
         builder: (context, state) {
           final property = state.extra as PropertyModel;
           return CustomerPropertyDetailsScreen(property: property);
@@ -156,12 +173,78 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ReportsScreen(),
       ),
       GoRoute(
+        path: '/activity-report',
+        builder: (context, state) => const RealtimeActivityReportScreen(),
+      ),
+      GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/orders/acquire',
+        redirect: (context, state) => state.extra == null ? '/customer-dashboard' : null,
+        builder: (context, state) {
+          final prop = state.extra as PropertyModel;
+          return AcquisitionFlowScreen(property: prop);
+        },
+      ),
+      GoRoute(
+        path: '/orders/payment-submission',
+        redirect: (context, state) => state.extra == null ? '/customer-dashboard' : null,
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return PaymentSubmissionScreen(
+            property: args['property'] as PropertyModel,
+            plan: args['plan'] as String,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/my-orders',
+        builder: (context, state) => const MyOrdersScreen(),
+      ),
+      GoRoute(
+        path: '/my-kikoba',
+        builder: (context, state) => const MyKikobaScreen(),
+      ),
+      GoRoute(
+        path: '/orders/detail',
+        redirect: (context, state) => state.extra == null ? '/my-orders' : null,
+        builder: (context, state) {
+          final order = state.extra as OrderModel;
+          return OrderDetailsScreen(order: order);
+        },
+      ),
+      GoRoute(
+        path: '/admin/orders',
+        builder: (context, state) => const AdminOrderManagementScreen(),
+      ),
+      GoRoute(
+        path: '/admin/kikoba',
+        builder: (context, state) => const AdminKikobaDashboard(),
+      ),
+      GoRoute(
+        path: '/chat',
+        builder: (context, state) => const ChatListScreen(),
+      ),
+      GoRoute(
+        path: '/chat/new',
+        builder: (context, state) => const NewChatScreen(),
+      ),
+      GoRoute(
+        path: '/chat/:id',
+        builder: (context, state) {
+          final chat = state.extra as ChatModel;
+          return ChatRoomScreen(chat: chat);
+        },
       ),
     ],
   );

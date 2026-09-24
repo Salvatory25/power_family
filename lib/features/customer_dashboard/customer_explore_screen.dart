@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../widgets/app_empty_state.dart';
@@ -27,7 +28,7 @@ class _CustomerExploreScreenState extends ConsumerState<CustomerExploreScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Gundua Mali', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)),
+        title: Text('explore.title'.tr(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)),
         centerTitle: false,
       ),
       body: Column(
@@ -55,9 +56,9 @@ class _CustomerExploreScreenState extends ConsumerState<CustomerExploreScreen> {
                       Expanded(
                         child: TextField(
                           onChanged: (value) => setState(() => _searchQuery = value),
-                          decoration: const InputDecoration(
-                            hintText: 'Search properties...',
-                            hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
+                          decoration: InputDecoration(
+                            hintText: 'dashboard.search_hint'.tr(),
+                            hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.w500),
                             border: InputBorder.none,
                           ),
                           style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
@@ -81,13 +82,13 @@ class _CustomerExploreScreenState extends ConsumerState<CustomerExploreScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildCategoryChip('All', 'Zote'),
+                      _buildCategoryChip('All', 'explore.filter_all'.tr()),
                       const SizedBox(width: 8),
-                      _buildCategoryChip('KIWANJA', 'Viwanja'),
+                      _buildCategoryChip('KIWANJA', 'explore.filter_plots'.tr()),
                       const SizedBox(width: 8),
-                      _buildCategoryChip('NYUMBA', 'Nyumba'),
+                      _buildCategoryChip('NYUMBA', 'explore.filter_houses'.tr()),
                       const SizedBox(width: 8),
-                      _buildCategoryChip('GARI', 'Magari'),
+                      _buildCategoryChip('GARI', 'explore.filter_cars'.tr()),
                     ],
                   ),
                 ),
@@ -117,9 +118,9 @@ class _CustomerExploreScreenState extends ConsumerState<CustomerExploreScreen> {
                 }
 
                 if (filtered.isEmpty) {
-                  return const AppEmptyState(
-                    title: 'Hakuna mali zilizopatikana',
-                    subtitle: 'Kwa sasa hakuna mali zinazolingana na utafutaji wako.',
+                  return AppEmptyState(
+                    title: 'dashboard.no_properties'.tr(),
+                    subtitle: 'explore.no_results'.tr(),
                     icon: Icons.search_off_rounded,
                   );
                 }

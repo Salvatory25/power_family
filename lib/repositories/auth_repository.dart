@@ -225,6 +225,16 @@ class AuthRepository {
                   : null,
               'status': AppConstants.statusActive,
             }, onConflict: 'id');
+
+            await supabase.from('audit_logs').insert({
+              'actor_id': newUid,
+              'actor_name': fullName.trim(),
+              'action_type': 'USER_REGISTRATION',
+              'target_entity_type': 'Profile',
+              'target_entity_id': newUid,
+              'description': 'New user registered: ${fullName.trim()} ($role)',
+              'branch_id': branchId ?? 'branch_dar',
+            });
           } catch (_) {}
         }
 
@@ -288,6 +298,16 @@ class AuthRepository {
                 ? branchId
                 : null,
             'status': userStatus,
+          });
+
+          await supabase.from('audit_logs').insert({
+            'actor_id': newUid,
+            'actor_name': fullName.trim(),
+            'action_type': 'USER_REGISTRATION',
+            'target_entity_type': 'Profile',
+            'target_entity_id': newUid,
+            'description': 'New user registered: ${fullName.trim()} ($role)',
+            'branch_id': branchId ?? 'branch_dar',
           });
         } catch (_) {}
 
