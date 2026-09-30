@@ -39,17 +39,17 @@ dependencies:
   uuid: ^4.3.3
   shared_preferences: ^2.2.2
   supabase_flutter: ^2.5.0
-  firebase_core: ^4.15.0
-  firebase_auth: ^6.7.0
-  cloud_firestore: ^6.10.0
-  firebase_storage: ^13.6.0
-  firebase_messaging: ^16.7.0
   flutter_dotenv: ^6.0.1
-  http: ^1.2.1
+  http: ^1.6.0
   fl_chart: ^1.2.0
   image_picker: ^1.2.3
   easy_localization: ^3.0.8
   timeago: ^3.7.1
+  flutter_markdown: ^0.7.7+1
+  google_fonts: ^9.0.0
+  pdf: ^3.13.1
+  printing: ^5.15.1
+  mailer: ^7.2.0
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +61,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -104,3 +105,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"

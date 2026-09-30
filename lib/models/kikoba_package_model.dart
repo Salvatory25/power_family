@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class KikobaPackageModel {
   final String id;
@@ -35,7 +34,7 @@ class KikobaPackageModel {
       targetAmount: (map['targetAmount'] as num?)?.toDouble() ?? 0.0,
       memberLimit: map['memberLimit'] as int? ?? 0,
       status: map['status'] ?? 'INACTIVE',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
       createdBy: map['createdBy'] ?? 'system',
     );
   }
@@ -49,7 +48,7 @@ class KikobaPackageModel {
       'targetAmount': targetAmount,
       'memberLimit': memberLimit,
       'status': status,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
       'createdBy': createdBy,
     };
   }

@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+﻿import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user_model.dart';
 
@@ -148,7 +148,7 @@ class UserRepository {
         await supabase.from('audit_logs').insert({
           'actor_id': actorId,
           'actor_name': actorName,
-          'action_type': 'USER_CREATED',
+          'action': 'USER_CREATED',
           'target_entity_type': 'User',
           'target_entity_id': created.uid,
           'description': 'User \${created.fullName} signed up/created with role \${created.role}',
@@ -215,7 +215,7 @@ class UserRepository {
         await supabase.from('audit_logs').insert({
           'actor_id': currentUser?.id ?? 'system',
           'actor_name': currentUser != null ? 'Admin' : 'System',
-          'action_type': 'USER_STATUS_UPDATED',
+          'action': 'USER_STATUS_UPDATED',
           'target_entity_type': 'User',
           'target_entity_id': userId,
           'description': 'User status updated to \$newStatus',

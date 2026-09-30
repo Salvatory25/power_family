@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
   final String uid;
@@ -10,6 +9,7 @@ class UserModel {
   final String? branchName;
   final String? photoUrl;
   final String status; // active, pending, suspended, disabled
+  final String? region;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? lastLoginAt;
@@ -24,6 +24,7 @@ class UserModel {
     this.branchName,
     this.photoUrl,
     required this.status,
+    this.region,
     required this.createdAt,
     required this.updatedAt,
     this.lastLoginAt,
@@ -50,6 +51,7 @@ class UserModel {
       branchName: map['branchName'] ?? map['branch_name'],
       photoUrl: map['photoUrl'] ?? map['photo_url'],
       status: (map['status'] ?? 'PENDING').toString(),
+      region: map['region'],
       createdAt: _parseDate(map['createdAt'] ?? map['created_at']),
       updatedAt: _parseDate(map['updatedAt'] ?? map['updated_at']),
       lastLoginAt: _parseDate(map['lastLoginAt'] ?? map['last_login_at']),
@@ -59,7 +61,6 @@ class UserModel {
   static DateTime _parseDate(dynamic value) {
     if (value == null) return DateTime.now();
     if (value is DateTime) return value;
-    if (value is Timestamp) return value.toDate();
     if (value is String) {
       return DateTime.tryParse(value) ?? DateTime.now();
     }
@@ -77,9 +78,10 @@ class UserModel {
       'branchName': branchName,
       'photoUrl': photoUrl,
       'status': status,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
-      'lastLoginAt': lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
+      'region': region,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'lastLoginAt': lastLoginAt != null ? lastLoginAt!.toIso8601String() : null,
     };
   }
 
@@ -92,6 +94,7 @@ class UserModel {
     String? branchName,
     String? photoUrl,
     String? status,
+    String? region,
     DateTime? updatedAt,
     DateTime? lastLoginAt,
   }) {
@@ -105,6 +108,7 @@ class UserModel {
       branchName: branchName ?? this.branchName,
       photoUrl: photoUrl ?? this.photoUrl,
       status: status ?? this.status,
+      region: region ?? this.region,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,

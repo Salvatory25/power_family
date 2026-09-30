@@ -45,6 +45,11 @@ import '../../features/chat/screens/chat_list_screen.dart';
 import '../../features/chat/screens/chat_room_screen.dart';
 import '../../features/chat/screens/new_chat_screen.dart';
 import '../../models/chat_model.dart';
+import '../../features/kikoba/kikoba_admin_screen.dart';
+import '../../features/kikoba/kikoba_service_detail_screen.dart';
+import '../../features/kikoba/customer_kikoba_application_screen.dart';
+import '../../features/kikoba/kikoba_admin_review_screen.dart';
+import '../../features/kikoba/kikoba_admin_accounts_list_screen.dart';
 
 
 
@@ -107,6 +112,29 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/marketing-center',
         builder: (context, state) => const AIMarketingCenterScreen(),
+      ),
+      GoRoute(
+        path: '/admin/kikoba',
+        builder: (context, state) => const KikobaAdminScreen(),
+      ),
+      GoRoute(
+        path: '/admin/kikoba/review',
+        builder: (context, state) => const KikobaAdminReviewScreen(),
+      ),
+      GoRoute(
+        path: '/admin/kikoba/accounts',
+        builder: (context, state) => const KikobaAdminAccountsListScreen(),
+      ),
+      GoRoute(
+        path: '/customer/kikoba/apply',
+        builder: (context, state) => const CustomerKikobaApplicationScreen(),
+      ),
+      GoRoute(
+        path: '/admin/kikoba/service/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return KikobaServiceDetailScreen(serviceId: id);
+        },
       ),
       GoRoute(
         path: '/properties/new',

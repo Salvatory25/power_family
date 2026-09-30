@@ -41,7 +41,9 @@ class SuperAdminDashboard extends ConsumerWidget {
     final availableProps = properties.where((p) => p.status == AppConstants.propertyAvailable).length;
     final soldProps = properties.where((p) => p.status == AppConstants.propertySold).length;
 
-    final totalRevenue = sales.fold<double>(0, (sum, s) => sum + s.amount);
+    final totalRevenue = properties
+        .where((p) => p.status == AppConstants.propertySold)
+        .fold<double>(0, (sum, p) => sum + p.price);
     final pendingUsers = users.where((u) => u.status == AppConstants.statusPending).length;
 
     return Stack(
@@ -125,13 +127,17 @@ class SuperAdminDashboard extends ConsumerWidget {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  _getGreeting(),
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.8,
+                                Flexible(
+                                  child: Text(
+                                    _getGreeting(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.7),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.8,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 6),
@@ -422,7 +428,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                             value: Formatters.formatCurrency(totalRevenue),
                             icon: Icons.payments_outlined,
                             color: AppColors.statusAvailable,
-                            subtitle: '${sales.length} ${'admin.completed_sales'.tr()}',
+                            subtitle: '$soldProps ${'admin.completed_sales'.tr()}',
                             onTap: () => context.push('/sales'),
                           ),
                           StatCard(
@@ -457,11 +463,11 @@ class SuperAdminDashboard extends ConsumerWidget {
                             onTap: () => context.push('/customers'),
                           ),
                           StatCard(
-                            title: 'admin.active_leads'.tr(),
-                            value: leads.length.toString(),
-                            icon: Icons.trending_up,
-                            color: AppColors.statusReserved,
-                            onTap: () => context.push('/leads'),
+                            title: 'Kikoba',
+                            value: '0',
+                            icon: Icons.savings_outlined,
+                            color: Colors.orange,
+                            onTap: () => context.push('/admin/kikoba'),
                           ),
                         ],
                       );
@@ -496,11 +502,11 @@ class SuperAdminDashboard extends ConsumerWidget {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _propertyTypeChip(context, 'explore.filter_plots'.tr(), properties.where((p) => p.type == 'kiwanja').length, Icons.landscape),
+                        _propertyTypeChip(context, 'explore.filter_plots'.tr(), properties.where((p) => p.type.toUpperCase() == AppConstants.typeKiwanja).length, Icons.landscape),
                         const SizedBox(width: 12),
-                        _propertyTypeChip(context, 'explore.filter_houses'.tr(), properties.where((p) => p.type == 'nyumba').length, Icons.home_work),
+                        _propertyTypeChip(context, 'explore.filter_houses'.tr(), properties.where((p) => p.type.toUpperCase() == AppConstants.typeNyumba).length, Icons.home_work),
                         const SizedBox(width: 12),
-                        _propertyTypeChip(context, 'explore.filter_cars'.tr(), properties.where((p) => p.type == 'gari').length, Icons.directions_car),
+                        _propertyTypeChip(context, 'explore.filter_cars'.tr(), properties.where((p) => p.type.toUpperCase() == AppConstants.typeGari).length, Icons.directions_car),
                       ],
                     ),
                   ),

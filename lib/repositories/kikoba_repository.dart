@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+﻿import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/kikoba_package_model.dart';
 import '../models/kikoba_membership_model.dart';
 

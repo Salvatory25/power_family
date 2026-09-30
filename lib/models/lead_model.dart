@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LeadModel {
   final String id;
@@ -39,10 +38,10 @@ class LeadModel {
       source: map['source'] ?? 'Direct Inquiry',
       status: map['status'] ?? 'new',
       notes: map['notes'] ?? '',
-      nextFollowUp: (map['nextFollowUp'] as Timestamp?)?.toDate(),
+      nextFollowUp: DateTime.tryParse(map['nextFollowUp']?.toString() ?? ''),
       createdBy: map['createdBy'] ?? '',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -55,10 +54,10 @@ class LeadModel {
       'source': source,
       'status': status,
       'notes': notes,
-      'nextFollowUp': nextFollowUp != null ? Timestamp.fromDate(nextFollowUp!) : null,
+      'nextFollowUp': nextFollowUp != null ? nextFollowUp!.toIso8601String() : null,
       'createdBy': createdBy,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 }

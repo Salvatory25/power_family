@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../core/constants/app_colors.dart';
+import '../../core/services/communication_service.dart';
 import 'notification_controller.dart';
 import '../auth/auth_controller.dart';
 
@@ -84,9 +85,20 @@ class NotificationsScreen extends ConsumerWidget {
       ),
     );
   }
+  
+  String? _extractPhoneNumber(String message) {
+    // Looks for "Phone: " followed by digits, spaces, and optional + sign
+    final regExp = RegExp(r'Phone:\s*([+\d\s]+)');
+    final match = regExp.firstMatch(message);
+    if (match != null) {
+      return match.group(1)?.trim();
+    }
+    return null;
+  }
 
   Widget _buildNotificationCard(BuildContext context, WidgetRef ref, dynamic notification) {
     final bool isUnread = !notification.isRead;
+    final String? extractedPhone = _extractPhoneNumber(notification.message);
     
     IconData getIconForType() {
       switch (notification.type.toUpperCase()) {
@@ -111,7 +123,6 @@ class NotificationsScreen extends ConsumerWidget {
         if (isUnread) {
           ref.read(notificationControllerProvider.notifier).markAsRead(notification.id);
         }
-        // Additional routing logic based on notification type can be added here
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -175,6 +186,36 @@ class NotificationsScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  
+                  // Contact Action Buttons if Phone is Extracted!
+                  if (extractedPhone != null && extractedPhone.isNotEmpty) ...[
+                    const Divider(height: 16),
+                    Row(
+                      children: [
+                        Text('Direct Contact:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.phone, size: 20, color: Colors.blue),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Call Customer',
+                          onPressed: () => CommunicationService.makePhoneCall(extractedPhone),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.sms, size: 20, color: Colors.orange),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'SMS Customer',
+                          onPressed: () => CommunicationService.openSmsComposer(extractedPhone),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chat, size: 20, color: Colors.green),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'WhatsApp',
+                          onPressed: () => CommunicationService.openWhatsApp(extractedPhone, message: 'Habari, nakutafuta kuhusu muamla au order uliyofanya kupita power family application'),
+                        ),
+                      ],
+                    ),
+                  ],
+                  
                   Text(
                     timeago.format(notification.createdAt),
                     style: const TextStyle(

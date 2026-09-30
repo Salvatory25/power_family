@@ -50,7 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } else if (mounted) {
       final err = ref.read(authControllerProvider).error;
       setState(() {
-        _errorMessage = err?.toString().replaceAll('Exception: ', '') ?? 'Invalid email or password.';
+        _errorMessage = err?.toString().replaceAll('Exception: ', '') ?? 'Incorrect email or password. Please check your details and try again.';
       });
     }
   }

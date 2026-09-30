@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BranchModel {
   final String id;
@@ -38,8 +37,8 @@ class BranchModel {
       managerId: map['managerId'],
       monthlyTarget: (map['monthlyTarget'] ?? map['monthly_target'] as num?)?.toDouble() ?? 50000000.0,
       status: map['status'] ?? 'active',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -53,8 +52,8 @@ class BranchModel {
       'managerId': managerId,
       'monthly_target': monthlyTarget,
       'status': status,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 

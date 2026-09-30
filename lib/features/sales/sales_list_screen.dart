@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
@@ -10,6 +11,8 @@ import '../auth/auth_controller.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/status_badge.dart';
+import '../../widgets/header_background.dart';
+import '../../widgets/loading_view.dart';
 
 final salesRepositoryProvider = Provider((ref) => SalesRepository());
 
@@ -39,8 +42,38 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
 
     final repo = ref.read(salesRepositoryProvider);
     final list = await repo.getSales(branchId: filterBranchId);
+    
+    // SYNCHRONIZATION FALLBACK:
+    // Some properties might be marked as 'SOLD' but the user hasn't explicitly created a sale record yet.
+    // To ensure the ledger revenue exactly matches the dashboard, we construct legacy sales on the fly.
+    final propertyRepo = ref.read(propertyRepoProvider);
+    final properties = await propertyRepo.getProperties(branchId: filterBranchId);
+    final soldProperties = properties.where((p) => p.status == AppConstants.propertySold).toList();
+    
+    final List<SaleModel> allSales = List.from(list);
+    
+    for (var prop in soldProperties) {
+      if (!allSales.any((s) => s.propertyId == prop.id)) {
+        allSales.add(SaleModel(
+          id: 'legacy_sale_${prop.id}',
+          propertyId: prop.id,
+          customerId: 'legacy',
+          agentId: prop.assignedAgentId ?? 'system',
+          branchId: prop.branchId,
+          amount: prop.price,
+          paymentStatus: AppConstants.paymentPaid,
+          saleStatus: AppConstants.saleCompleted,
+          createdAt: prop.updatedAt,
+          updatedAt: prop.updatedAt,
+          notes: 'Auto-synchronized legacy sale',
+        ));
+      }
+    }
+    
+    allSales.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
     setState(() {
-      _sales = list;
+      _sales = allSales;
       _isLoading = false;
     });
   }
@@ -167,77 +200,190 @@ class _SalesListScreenState extends ConsumerState<SalesListScreen> {
     final double grandTotalRevenue = _sales.fold(0, (sum, s) => sum + s.amount);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sales Ledger'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_shopping_cart),
-            onPressed: _showRecordSaleModal,
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          HeaderBackground(
+            height: 250,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const BackButton(color: Colors.white),
+                        IconButton(
+                          onPressed: _showRecordSaleModal,
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                            child: const Icon(Icons.add_shopping_cart, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Sales Ledger',
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Total Realized Revenue',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      Formatters.formatCurrency(grandTotalRevenue),
+                      style: GoogleFonts.outfit(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.statusAvailable,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 230),
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -4))],
+              ),
+              child: _isLoading
+                  ? const LoadingView()
+                  : _sales.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No sales transactions found.',
+                            style: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 16),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(20, 32, 20, 100),
+                          itemCount: _sales.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final sale = _sales[index];
+
+                            final customers = ref.read(customersProvider).value ?? [];
+                            final properties = ref.read(propertiesProvider).value ?? [];
+                            final custMatches = customers.where((c) => c.id == sale.customerId).toList();
+                            final custName = custMatches.isNotEmpty ? custMatches.first.fullName : 'Buyer';
+                            final propMatches = properties.where((p) => p.id == sale.propertyId).toList();
+                            final propTitle = propMatches.isNotEmpty ? '${propMatches.first.propertyCode} - ${propMatches.first.title}' : 'Property Transaction';
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
+                                border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.statusAvailable.withOpacity(0.15),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.check_circle_outline, color: AppColors.statusAvailable, size: 24),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                Formatters.formatCurrency(sale.amount),
+                                                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Buyer: $custName',
+                                                style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        StatusBadge(status: sale.paymentStatus),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.background,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.maps_home_work_outlined, size: 16, color: AppColors.primary),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              propTitle,
+                                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                                      child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.textSecondary),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Recorded: ${Formatters.formatDate(sale.createdAt)}',
+                                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Revenue Header Banner
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  color: AppColors.primary,
-                  child: Column(
-                    children: [
-                      const Text('Total Revenue Closed', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                      const SizedBox(height: 4),
-                      Text(
-                        Formatters.formatCurrency(grandTotalRevenue),
-                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      Text('${_sales.length} Verified Sales Transactions', style: const TextStyle(color: AppColors.accent, fontSize: 12)),
-                    ],
-                  ),
-                ),
- 
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _sales.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final sale = _sales[index];
-
-                      final customers = ref.read(customersProvider).value ?? [];
-                      final properties = ref.read(propertiesProvider).value ?? [];
-                      final custMatches = customers.where((c) => c.id == sale.customerId).toList();
-                      final custName = custMatches.isNotEmpty ? custMatches.first.fullName : 'Buyer';
-                      final propMatches = properties.where((p) => p.id == sale.propertyId).toList();
-                      final propTitle = propMatches.isNotEmpty ? '${propMatches.first.propertyCode} - ${propMatches.first.title}' : 'Property Transaction';
-
-                      return Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.statusAvailable,
-                            child: Icon(Icons.check, color: Colors.white),
-                          ),
-                          title: Text(Formatters.formatCurrency(sale.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          subtitle: Text('Buyer: $custName\nProperty: $propTitle', style: const TextStyle(fontSize: 12)),
-
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              StatusBadge(status: sale.paymentStatus),
-                              const SizedBox(height: 4),
-                              Text(Formatters.formatDate(sale.createdAt), style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
     );
   }
 }

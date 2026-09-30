@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SurveyTaskModel {
   final String id;
@@ -32,11 +31,11 @@ class SurveyTaskModel {
       surveyorId: map['surveyorId'] ?? '',
       branchId: map['branchId'] ?? '',
       status: map['status'] ?? 'assigned',
-      deadline: (map['deadline'] as Timestamp?)?.toDate(),
+      deadline: DateTime.tryParse(map['deadline']?.toString() ?? ''),
       notes: map['notes'] ?? '',
       documents: List<String>.from(map['documents'] ?? []),
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -46,11 +45,11 @@ class SurveyTaskModel {
       'surveyorId': surveyorId,
       'branchId': branchId,
       'status': status,
-      'deadline': deadline != null ? Timestamp.fromDate(deadline!) : null,
+      'deadline': deadline != null ? deadline!.toIso8601String() : null,
       'notes': notes,
       'documents': documents,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 }

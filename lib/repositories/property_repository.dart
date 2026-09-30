@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../models/property_model.dart';
+import '../core/services/email_service.dart';
 
 class PropertyRepository {
   SupabaseClient? get _supabase {
@@ -17,9 +19,7 @@ class PropertyRepository {
     String? requestedId,
   ) async {
     try {
-      if (requestedId != null &&
-          requestedId.length == 36 &&
-          requestedId.contains('-')) {
+      if (requestedId != null && requestedId.isNotEmpty) {
         return requestedId;
       }
       final res = await supabase.from('branches').select('id').limit(1);
@@ -54,23 +54,45 @@ class PropertyRepository {
       if (res != null && (res as List).isNotEmpty) {
         return res.first['id'].toString();
       }
-      final uniqueCode = 'PRJ-\${branchUuid.substring(0, 8).toUpperCase()}';
-      final inserted = await supabase
-          .from('projects')
-          .insert({
-            'branch_id': branchUuid,
-            'project_code': uniqueCode,
-            'name': 'Default Project',
-            'region': 'Dar es Salaam',
-            'district': 'Kigamboni',
-            'total_area_sqm': 50000.0,
-          })
-          .select()
-          .single();
-      return inserted['id'].toString();
+      String shortCode = branchUuid.length >= 8 ? branchUuid.substring(0, 8) : branchUuid;
+      final uniqueCode = 'PRJ-${shortCode.toUpperCase()}';
+      
+      final secretKey = dotenv.env['SUPABASE_SERVICE_KEY'] ?? '';
+      final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+      
+      if (secretKey.isNotEmpty && secretKey.contains('secret')) {
+        final adminClient = SupabaseClient(supabaseUrl, secretKey);
+        final inserted = await adminClient
+            .from('projects')
+            .insert({
+              'branch_id': branchUuid,
+              'project_code': uniqueCode,
+              'name': 'Default Project',
+              'region': 'Dar es Salaam',
+              'district': 'Kigamboni',
+              'total_area_sqm': 50000.0,
+            })
+            .select()
+            .single();
+        return inserted['id'].toString();
+      } else {
+        final inserted = await supabase
+            .from('projects')
+            .insert({
+              'branch_id': branchUuid,
+              'project_code': uniqueCode,
+              'name': 'Default Project',
+              'region': 'Dar es Salaam',
+              'district': 'Kigamboni',
+              'total_area_sqm': 50000.0,
+            })
+            .select()
+            .single();
+        return inserted['id'].toString();
+      }
     } catch (e) {
       print('Error resolving project UUID: $e');
-      return null;
+      throw Exception('Project resolution error: $e');
     }
   }
 
@@ -304,21 +326,49 @@ class PropertyRepository {
           updatedAt: DateTime.now(),
         );
 
-        final currentUser = supabase.auth.currentUser;
-        await supabase.from('audit_logs').insert({
-          'actor_id': currentUser?.id ?? created.createdBy,
-          'actor_name': currentUser != null ? 'Staff' : 'System',
-          'action_type': 'PROPERTY_CREATED',
-          'target_entity_type': 'Property',
-          'target_entity_id': created.id,
-          'description': 'Added new \${created.type} property (\${created.propertyCode})',
-          'branch_id': branchUuid,
-        });
+        try {
+          final currentUser = supabase.auth.currentUser;
+          await supabase.from('audit_logs').insert({
+            'actor_id': currentUser?.id ?? created.createdBy,
+            'actor_name': currentUser != null ? 'Staff' : 'System',
+            'action': 'PROPERTY_CREATED',
+            'target_entity_type': 'Property',
+            'target_entity_id': created.id,
+            'description': 'Added new ${created.type} property (${created.propertyCode})',
+            'branch_id': branchUuid,
+          });
+          
+          // Trigger Broadcast Email to all customers
+          try {
+            final customersRes = await supabase.from('customers').select('email').neq('email', '');
+            final List<String> bccEmails = [];
+            for (var item in (customersRes as List)) {
+              final email = item['email']?.toString();
+              if (email != null && email.isNotEmpty && email.contains('@')) {
+                bccEmails.add(email);
+              }
+            }
+            if (bccEmails.isNotEmpty) {
+              EmailService.sendNewPropertyBroadcast(
+                bccEmails,
+                created.title,
+                created.type,
+                created.location,
+                created.price.toString(),
+              );
+            }
+          } catch (broadcastErr) {
+            print('Error broadcasting new property email: $broadcastErr');
+          }
+          
+        } catch (e) {
+          print('Error logging to audit_logs: $e');
+        }
       }
     } catch (e) {
       print('Error creating property in Supabase: $e');
+      throw Exception('Failed to create property: $e');
     }
-
 
     return created;
   }
@@ -335,19 +385,24 @@ class PropertyRepository {
             })
             .eq('id', propertyId);
             
-        final currentUser = supabase.auth.currentUser;
-        await supabase.from('audit_logs').insert({
-          'actor_id': currentUser?.id ?? 'system',
-          'actor_name': currentUser != null ? 'Staff' : 'System',
-          'action_type': 'PROPERTY_STATUS_UPDATED',
-          'target_entity_type': 'Property',
-          'target_entity_id': propertyId,
-          'description': 'Property status updated to \$newStatus',
-          'branch_id': 'branch_dar',
-        });
+        try {
+          final currentUser = supabase.auth.currentUser;
+          await supabase.from('audit_logs').insert({
+            'actor_id': currentUser?.id ?? 'system',
+            'actor_name': currentUser != null ? 'Staff' : 'System',
+            'action': 'PROPERTY_STATUS_UPDATED',
+            'target_entity_type': 'Property',
+            'target_entity_id': propertyId,
+            'description': 'Property status updated to $newStatus',
+            'branch_id': 'branch_dar',
+          });
+        } catch (e) {
+          print('Error logging to audit_logs: $e');
+        }
       }
     } catch (e) {
       print('Error updating property status: $e');
+      throw Exception('Failed to update property status: $e');
     }
   }
 
@@ -396,19 +451,24 @@ class PropertyRepository {
 
         await supabase.from('plots').update(updateData).eq('id', property.id);
         
-        final currentUser = supabase.auth.currentUser;
-        await supabase.from('audit_logs').insert({
-          'actor_id': currentUser?.id ?? 'system',
-          'actor_name': currentUser != null ? 'Staff' : 'System',
-          'action_type': 'PROPERTY_UPDATED',
-          'target_entity_type': 'Property',
-          'target_entity_id': property.id,
-          'description': 'Property \${property.propertyCode} was edited',
-          'branch_id': property.branchId.isNotEmpty ? property.branchId : 'branch_dar',
-        });
+        try {
+          final currentUser = supabase.auth.currentUser;
+          await supabase.from('audit_logs').insert({
+            'actor_id': currentUser?.id ?? 'system',
+            'actor_name': currentUser != null ? 'Staff' : 'System',
+            'action': 'PROPERTY_UPDATED',
+            'target_entity_type': 'Property',
+            'target_entity_id': property.id,
+            'description': 'Property ${property.propertyCode} was edited',
+            'branch_id': property.branchId.isNotEmpty ? property.branchId : 'branch_dar',
+          });
+        } catch (e) {
+          print('Error logging to audit_logs: $e');
+        }
       }
     } catch (e) {
       print('Error updating property: $e');
+      throw Exception('Failed to update property: $e');
     }
   }
 
@@ -420,6 +480,7 @@ class PropertyRepository {
       }
     } catch (e) {
       print('Error deleting property: $e');
+      throw Exception('Failed to delete property: $e');
     }
   }
   Future<String?> uploadPropertyImage(Uint8List bytes, String fileName) async {

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CustomerModel {
   final String id;
@@ -47,8 +46,8 @@ class CustomerModel {
       assignedAgentId: map['assignedAgentId'],
       branchId: map['branchId'] ?? '',
       createdBy: map['createdBy'] ?? '',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -65,8 +64,8 @@ class CustomerModel {
       'assignedAgentId': assignedAgentId,
       'branchId': branchId,
       'createdBy': createdBy,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 }

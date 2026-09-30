@@ -44,6 +44,24 @@ class NotificationRepository {
     }
   }
 
+  // Notify all admins without needing a branch ID
+  Future<void> notifyAllAdmins({
+    required String title,
+    required String message,
+    required String type,
+  }) async {
+    try {
+      // Call RPC function that has SECURITY DEFINER to bypass RLS
+      await _supabase.rpc('notify_admins', params: {
+        'p_title': title,
+        'p_message': message,
+        'p_type': type,
+      });
+    } catch (e) {
+      throw Exception('Failed to notify all admins: $e');
+    }
+  }
+
   // Fetch notifications once
   Future<List<NotificationModel>> getNotifications(String userId) async {
     try {

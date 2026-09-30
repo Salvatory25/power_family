@@ -92,6 +92,37 @@ class CustomerRepository {
           }
           list = mappedList;
         }
+
+        // Fetch from profiles where role is CUSTOMER
+        var profileQuery = supabase.from('profiles').select().eq('primary_role', 'CUSTOMER');
+        if (branchId != null && branchId.isNotEmpty && branchId.length == 36) {
+          profileQuery = profileQuery.eq('branch_id', branchId);
+        }
+        
+        final profileResponse = await profileQuery;
+        if (profileResponse != null && (profileResponse as List).isNotEmpty) {
+          for (final rawItem in (profileResponse as List)) {
+            final map = rawItem as Map<String, dynamic>;
+            list.add(
+              CustomerModel(
+                id: (map['id'] ?? '').toString(),
+                fullName: (map['full_name'] ?? '${map['first_name'] ?? ''} ${map['last_name'] ?? ''}').toString().trim(),
+                phone: (map['phone'] ?? '').toString(),
+                email: (map['email'] ?? '').toString(),
+                address: (map['address'] ?? '').toString(),
+                notes: 'App User',
+                interestedPropertyTypes: const ['KIWANJA'],
+                budget: 0.0,
+                status: 'ACTIVE',
+                assignedAgentId: null,
+                branchId: (map['branch_id'] ?? '').toString(),
+                createdBy: 'system',
+                createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now() : DateTime.now(),
+                updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) ?? DateTime.now() : DateTime.now(),
+              ),
+            );
+          }
+        }
       }
     } catch (e) {
       print('Error loading customers: $e');
@@ -165,7 +196,7 @@ class CustomerRepository {
         await supabase.from('audit_logs').insert({
           'actor_id': currentUser?.id ?? created.createdBy,
           'actor_name': currentUser != null ? 'Staff' : 'System',
-          'action_type': 'CUSTOMER_CREATED',
+          'action': 'CUSTOMER_CREATED',
           'target_entity_type': 'Customer',
           'target_entity_id': created.id,
           'description': 'Added new customer \${created.fullName}',

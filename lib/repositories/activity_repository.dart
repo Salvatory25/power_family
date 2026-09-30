@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+﻿import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/activity_model.dart';
 
 class ActivityRepository {
@@ -28,7 +28,7 @@ class ActivityRepository {
               id: (map['id'] ?? '').toString(),
               actorId: (map['actor_id'] ?? '').toString(),
               actorName: (map['actor_name'] ?? 'System User').toString(),
-              action: (map['action_type'] ?? 'ACTIVITY').toString(),
+              action: (map['action'] ?? 'ACTIVITY').toString(),
               entityType: (map['target_entity_type'] ?? 'Entity').toString(),
               entityId: (map['target_entity_id'] ?? '').toString(),
               description: (map['description'] ?? '').toString(),
@@ -61,7 +61,7 @@ class ActivityRepository {
           id: (map['id'] ?? '').toString(),
           actorId: (map['actor_id'] ?? '').toString(),
           actorName: (map['actor_name'] ?? 'System User').toString(),
-          action: (map['action_type'] ?? 'ACTIVITY').toString(),
+          action: (map['action'] ?? 'ACTIVITY').toString(),
           entityType: (map['target_entity_type'] ?? 'Entity').toString(),
           entityId: (map['target_entity_id'] ?? '').toString(),
           description: (map['description'] ?? '').toString(),
@@ -79,7 +79,7 @@ class ActivityRepository {
         await supabase.from('audit_logs').insert({
           'actor_id': activity.actorId,
           'actor_name': activity.actorName,
-          'action_type': activity.action,
+          'action': activity.action,
           'target_entity_type': activity.entityType,
           'target_entity_id': activity.entityId,
           'description': activity.description,

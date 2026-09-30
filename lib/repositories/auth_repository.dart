@@ -1,12 +1,11 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user_model.dart';
 import '../core/constants/app_constants.dart';
+import '../core/services/email_service.dart';
 
 class AuthRepository {
   SupabaseClient? get _supabase {
@@ -92,7 +91,7 @@ class AuthRepository {
                 'first_name': fName,
                 'last_name': lName,
                 'email': cleanEmail,
-                'phone': res.user!.phone ?? '',
+                if (res.user!.phone != null && res.user!.phone!.isNotEmpty) 'phone': res.user!.phone!,
                 'primary_role': fallbackRole,
                 'status': AppConstants.statusActive,
               });
@@ -159,13 +158,38 @@ class AuthRepository {
     }
 
     if (lastSupabaseError != null) {
-      throw Exception(
-        'Login failed: $lastSupabaseError\n\nIf it says "Email not confirmed", you MUST disable "Confirm Email" in Supabase Auth Settings.',
-      );
+      final errLower = lastSupabaseError.toLowerCase();
+      if (errLower.contains('invalid_credentials') ||
+          errLower.contains('invalid login credentials')) {
+        throw Exception(
+          'Incorrect email or password. Please check your details and try again.',
+        );
+      } else if (errLower.contains('email not confirmed') ||
+          errLower.contains('email_not_confirmed')) {
+        throw Exception(
+          'Your email address has not been confirmed yet. Please check your inbox or contact support.',
+        );
+      } else if (errLower.contains('user_not_found') ||
+          errLower.contains('user not found')) {
+        throw Exception(
+          'No account was found with this email. Please check your email or sign up.',
+        );
+      } else if (errLower.contains('socket') ||
+          errLower.contains('network') ||
+          errLower.contains('clientexception') ||
+          errLower.contains('connection')) {
+        throw Exception(
+          'Unable to connect to the server. Please check your internet connection.',
+        );
+      } else {
+        throw Exception(
+          'Incorrect email or password. Please check your details and try again.',
+        );
+      }
     }
 
     throw Exception(
-      'Invalid email or password. Please verify your credentials or ensure the account exists.',
+      'Incorrect email or password. Please check your details and try again.',
     );
   }
 
@@ -173,7 +197,6 @@ class AuthRepository {
     _currentUser = user;
   }
 
-  /// Register new user account via Supabase Admin API (auto-confirms email, no verification needed)
   Future<UserModel> register({
     required String fullName,
     required String email,
@@ -181,6 +204,7 @@ class AuthRepository {
     required String password,
     String? requestedRole,
     String? branchId,
+    String? region,
   }) async {
     final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
     final secretKey = dotenv.env['SUPABASE_SERVICE_KEY'] ?? '';
@@ -209,32 +233,31 @@ class AuthRepository {
         // This allows RLS to permit inserting into the profiles table
         await login(email: email.trim(), password: password.trim());
 
-        // Upsert profile
         final supabase = _supabase;
         if (supabase != null) {
           try {
-            await supabase.from('profiles').upsert({
+            // Run upsert and audit_log asynchronously (fire and forget) to massively speed up registration
+            supabase.from('profiles').upsert({
               'id': newUid,
               'first_name': firstName,
               'last_name': lastName,
               'email': email.trim(),
               'phone': phone.trim(),
               'primary_role': role,
-              'branch_id': (branchId != null && branchId.length == 36)
-                  ? branchId
-                  : null,
+              'region': region,
+              'branch_id': (branchId != null && branchId.length == 36) ? branchId : null,
               'status': AppConstants.statusActive,
-            }, onConflict: 'id');
-
-            await supabase.from('audit_logs').insert({
-              'actor_id': newUid,
-              'actor_name': fullName.trim(),
-              'action_type': 'USER_REGISTRATION',
-              'target_entity_type': 'Profile',
-              'target_entity_id': newUid,
-              'description': 'New user registered: ${fullName.trim()} ($role)',
-              'branch_id': branchId ?? 'branch_dar',
-            });
+            }, onConflict: 'id').then((_) {
+              supabase.from('audit_logs').insert({
+                'actor_id': newUid,
+                'actor_name': fullName.trim(),
+                'action': 'USER_REGISTRATION',
+                'target_entity_type': 'Profile',
+                'target_entity_id': newUid,
+                'description': 'New user registered: ${fullName.trim()} ($role)',
+                'branch_id': branchId ?? 'branch_dar',
+              });
+            }).catchError((_) {});
           } catch (_) {}
         }
 
@@ -294,6 +317,7 @@ class AuthRepository {
             'email': email.trim(),
             'phone': phone.trim(),
             'primary_role': role,
+            'region': region,
             'branch_id': (branchId != null && branchId.length == 36)
                 ? branchId
                 : null,
@@ -303,7 +327,7 @@ class AuthRepository {
           await supabase.from('audit_logs').insert({
             'actor_id': newUid,
             'actor_name': fullName.trim(),
-            'action_type': 'USER_REGISTRATION',
+            'action': 'USER_REGISTRATION',
             'target_entity_type': 'Profile',
             'target_entity_id': newUid,
             'description': 'New user registered: ${fullName.trim()} ($role)',
@@ -317,6 +341,7 @@ class AuthRepository {
           email: email.trim(),
           phone: phone.trim(),
           role: role,
+          region: region,
           branchId: branchId ?? '',
           status: userStatus,
           createdAt: DateTime.now(),
@@ -338,13 +363,91 @@ class AuthRepository {
     }
   }
 
+  String? _tempResetEmail;
+  String? _tempResetCode;
+  String? _tempResetUserId;
+
   Future<void> sendPasswordResetEmail(String email) async {
+    final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+    final secretKey = dotenv.env['SUPABASE_SERVICE_KEY'] ?? '';
+
+    if (secretKey.isEmpty || !secretKey.contains('secret')) {
+      throw Exception('Admin API key missing.');
+    }
+
     try {
-      final supabase = _supabase;
-      if (supabase != null) {
-        await supabase.auth.resetPasswordForEmail(email.trim());
+      final adminClient = SupabaseClient(supabaseUrl, secretKey);
+      final cleanEmail = email.trim().toLowerCase();
+      
+      // 1. Verify user exists using Admin Client to bypass RLS
+      final user = await adminClient.from('profiles').select('id, first_name').ilike('email', cleanEmail).maybeSingle();
+      if (user == null) {
+        throw Exception('No account found with this email.');
       }
-    } catch (_) {}
+
+      // 2. Generate 6 digit code
+      final code = (100000 + DateTime.now().microsecondsSinceEpoch % 900000).toString();
+      _tempResetEmail = cleanEmail;
+      _tempResetCode = code;
+      _tempResetUserId = user['id'];
+
+      // 3. Send using our working EmailService (Not Supabase)
+      final success = await EmailService.sendOTPEmail(cleanEmail, code, user['first_name'] ?? 'Mteja');
+      
+      if (!success) {
+        throw Exception('Failed to send email through SMTP. Please check your internet connection.');
+      }
+    } catch (e) {
+      throw Exception('$e');
+    }
+  }
+
+  Future<void> verifyOTPAndResetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    final supabase = _supabase;
+    if (supabase == null) throw Exception('No database connection');
+    
+    try {
+      final cleanEmail = email.trim().toLowerCase();
+      final cleanToken = token.trim();
+
+      if (_tempResetEmail != cleanEmail || _tempResetCode != cleanToken) {
+        throw Exception('Invalid or expired reset code. Please try again.');
+      }
+
+      final userId = _tempResetUserId;
+      if (userId == null) {
+        throw Exception('User session lost. Please request a new code.');
+      }
+
+      // We use the Admin API to forcefully update the password since they proved they own the email
+      final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+      final secretKey = dotenv.env['SUPABASE_SERVICE_KEY'] ?? '';
+
+      if (secretKey.isEmpty || !secretKey.contains('secret')) {
+        throw Exception('Admin API key is missing. Cannot reset password.');
+      }
+
+      final adminClient = SupabaseClient(supabaseUrl, secretKey);
+      await adminClient.auth.admin.updateUserById(
+        userId,
+        attributes: AdminUserAttributes(password: newPassword.trim()),
+      );
+
+      // Now successfully reset, log them in immediately!
+      await login(email: cleanEmail, password: newPassword.trim());
+      
+      // Clear temp variables
+      _tempResetEmail = null;
+      _tempResetCode = null;
+      _tempResetUserId = null;
+      
+    } catch (e) {
+      throw Exception('Failed to verify code: $e');
+    }
   }
 
   Future<void> logout() async {
@@ -388,5 +491,16 @@ class AuthRepository {
     } catch (e) {
       throw Exception('Failed to upload profile picture: $e');
     }
+  }
+
+  Future<UserModel> updateRegion(String region) async {
+    final supabase = _supabase;
+    if (supabase == null) throw Exception('No database connection');
+    if (_currentUser == null) throw Exception('No active session');
+
+    await supabase.from('profiles').update({'region': region}).eq('id', _currentUser!.uid);
+    
+    _currentUser = _currentUser!.copyWith(region: region);
+    return _currentUser!;
   }
 }

@@ -24,6 +24,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   String? _errorMessage;
+  String? _selectedRegion;
+  
+  final List<String> _regions = [
+    'Dar es Salaam', 'Arusha', 'Dodoma', 'Mwanza', 'Mbeya', 'Morogoro', 
+    'Tanga', 'Kilimanjaro', 'Pwani', 'Mtwara', 'Kagera', 'Singida', 
+    'Tabora', 'Kigoma', 'Shinyanga', 'Manyara', 'Ruvuma', 'Lindi', 
+    'Geita', 'Njombe', 'Katavi', 'Songwe', 'Rukwa', 'Iringa', 'Mara', 'Simiyu'
+  ];
 
   @override
   void dispose() {
@@ -50,6 +58,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           phone: _phoneController.text,
           password: _passwordController.text,
           requestedRole: AppConstants.roleCustomer,
+          region: _selectedRegion,
         );
 
     if (success && mounted) {
@@ -172,6 +181,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         validator: Formatters.validatePhone,
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                         decoration: _inputDecoration('Namba ya Simu', '+255 7XX XXX XXX', Icons.phone_outlined),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Region Dropdown Field
+                      DropdownButtonFormField<String>(
+                        value: _selectedRegion,
+                        decoration: _inputDecoration('Mkoa Unaoishi', 'Chagua mkoa wako', Icons.map_outlined),
+                        items: _regions.map((String region) {
+                          return DropdownMenuItem<String>(
+                            value: region,
+                            child: Text(region, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedRegion = newValue;
+                          });
+                        },
+                        validator: (val) {
+                          if (val == null || val.isEmpty) return 'Tafadhali chagua mkoa wako';
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 18),
 

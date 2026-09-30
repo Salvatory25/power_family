@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PaymentModel {
   final String id;
@@ -36,7 +35,7 @@ class PaymentModel {
       transactionRef: map['transactionRef'] ?? '',
       status: map['status'] ?? 'PENDING',
       verifiedBy: map['verifiedBy'],
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -50,7 +49,7 @@ class PaymentModel {
       'transactionRef': transactionRef,
       'status': status,
       'verifiedBy': verifiedBy,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

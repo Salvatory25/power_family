@@ -48,6 +48,17 @@ class ChatRepository {
   }
 
   Future<ChatModel> startPropertyChat(String currentUserId, String propertyId, String branchId) async {
+    // Ensure current user exists in profiles table
+    final currentUserProfile = await _supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', currentUserId)
+        .maybeSingle();
+
+    if (currentUserProfile == null) {
+      throw Exception('Your profile setup is incomplete. Please log out and log in again.');
+    }
+
     // Check if chat for this property and user already exists
     final existing = await _supabase
         .from('chats')
@@ -84,7 +95,7 @@ class ChatRepository {
         .eq('primary_role', 'BRANCH_MANAGER')
         .limit(1);
     
-    String participant2Id = currentUserId; // fallback
+    String? participant2Id;
     if (bmRes != null && (bmRes as List).isNotEmpty) {
       participant2Id = bmRes.first['id'].toString();
     } else {
@@ -93,9 +104,13 @@ class ChatRepository {
     }
 
     // Ensure they are not the same (if branch manager is testing their own property)
-    if (participant2Id == currentUserId) {
+    if (participant2Id == currentUserId || participant2Id == null) {
       final saRes = await _supabase.from('profiles').select('id').neq('id', currentUserId).limit(1);
       if (saRes != null && (saRes as List).isNotEmpty) participant2Id = saRes.first['id'].toString();
+    }
+
+    if (participant2Id == null) {
+      throw Exception('No staff members available to chat with at the moment.');
     }
 
     final p1 = currentUserId.compareTo(participant2Id) < 0 ? currentUserId : participant2Id;
@@ -132,6 +147,35 @@ class ChatRepository {
     mutableData['other_avatar'] = otherData?['avatar_url'];
 
     return ChatModel.fromMap(mutableData, currentUserId: currentUserId);
+  }
+
+  Future<ChatModel> startCustomerChat(String currentUserId, String customerId, String branchId) async {
+    // Ensure current user exists in profiles table
+    final currentUserProfile = await _supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', currentUserId)
+        .maybeSingle();
+
+    if (currentUserProfile == null) {
+      throw Exception('Your profile setup is incomplete. Please log out and log in again.');
+    }
+
+    // Check if the customer is an App User (registered in profiles)
+    bool isAppUser = false;
+    if (customerId.length == 36 && customerId.contains('-')) {
+       final custRes = await _supabase.from('profiles').select('id').eq('id', customerId).maybeSingle();
+       if (custRes != null) {
+          isAppUser = true;
+       }
+    }
+
+    if (isAppUser) {
+      // It's a real user. Just use normal 1-on-1 DM!
+      return startOrGetChat(currentUserId, customerId);
+    } else {
+      throw Exception('This customer has not registered on the app yet. Please use WhatsApp or SMS to contact them directly.');
+    }
   }
 
   // Find existing chat or create a new one

@@ -158,6 +158,7 @@ class SalesRepository {
           'customer_id': customerUuid,
           'plot_id': plotUuid,
           'project_id': projectUuid,
+          'sales_agent_id': sale.agentId,
           'agreed_price': sale.amount,
           'deposit_amount': sale.amount * 0.4,
           'balance_amount': sale.amount * 0.6,
@@ -188,7 +189,7 @@ class SalesRepository {
         await supabase.from('audit_logs').insert({
           'actor_id': currentUser?.id ?? 'system',
           'actor_name': currentUser != null ? 'Staff' : 'System',
-          'action_type': 'SALE_CREATED',
+          'action': 'SALE_CREATED',
           'target_entity_type': 'Sale',
           'target_entity_id': created.id,
           'description': 'Closed a sale worth TZS \${sale.amount} for plot \$plotUuid',

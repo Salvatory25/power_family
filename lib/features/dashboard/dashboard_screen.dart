@@ -166,7 +166,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   _hubTile(context, 'Users/Staff', Icons.manage_accounts, '/users', AppColors.primary),
                   _hubTile(context, 'Leads', Icons.trending_up, '/leads', AppColors.statusPending),
                   _hubTile(context, 'Sales', Icons.point_of_sale, '/sales', AppColors.statusAvailable),
-                  _hubTile(context, 'Surveys', Icons.architecture, '/surveys', AppColors.statusSurveying),
                   _hubTile(context, 'SMS System', Icons.sms_outlined, '/sms', AppColors.statusUnderProcess),
                   _hubTile(context, 'Reports', Icons.assessment_outlined, '/reports', AppColors.primary),
                   _hubTile(context, 'Live Chat', Icons.chat_bubble_outline, '/chat', AppColors.accent),

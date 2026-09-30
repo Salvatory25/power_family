@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../widgets/app_logo.dart';
+import '../dashboard/dashboard_providers.dart';
 import 'auth_controller.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -27,32 +28,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeIn);
     _animController.forward();
-
-    _checkSession();
-  }
-
-  Future<void> _checkSession() async {
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted || _isNavigated) return;
-    _isNavigated = true;
-    _animController.stop();
-
-    final authState = ref.read(authControllerProvider);
-    authState.when(
-      data: (user) {
-        if (user == null) {
-          context.go('/login');
-        } else if (user.status != AppConstants.statusActive) {
-          context.go('/account-status');
-        } else if (user.role == AppConstants.roleCustomer) {
-          context.go('/customer-dashboard');
-        } else {
-          context.go('/dashboard');
-        }
-      },
-      error: (_, __) => context.go('/login'),
-      loading: () => context.go('/login'),
-    );
   }
 
   @override
@@ -63,6 +38,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    // Intentionally avoiding heavy pre-fetching here to speed up launch time.
+    ref.listen(authControllerProvider, (previous, next) {
+      if (next.isLoading) return;
+      if (_isNavigated) return;
+      
+      // Delay slightly to ensure animation has time to show at least 1 frame 
+      // and give Riverpod/Router a clean tick.
+      Future.microtask(() {
+        if (!mounted) return;
+        setState(() => _isNavigated = true);
+        _animController.stop();
+
+        final user = next.value;
+        if (!mounted) return;
+        if (next.hasError || user == null) {
+          context.go('/login');
+        } else if (user.status != AppConstants.statusActive) {
+          context.go('/account-status');
+        } else if (user.role == AppConstants.roleCustomer) {
+          context.go('/customer-dashboard');
+        } else {
+          context.go('/dashboard');
+        }
+      });
+    });
+
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: Center(

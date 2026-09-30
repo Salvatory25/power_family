@@ -161,6 +161,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _profileRow('Assigned Role', AppConstants.getRoleLabel(user?.role ?? '')),
                     _profileRow('Assigned Branch', '${branch.name} (${branch.code})'),
                     _profileRow('Phone Number', user?.phone ?? 'N/A'),
+                    const Divider(height: 16),
+                    _regionRow(context, user?.region ?? ''),
                   ],
                 ),
               ),
@@ -207,6 +209,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         children: [
           Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _regionRow(BuildContext context, String currentRegion) {
+    final List<String> regions = [
+      'Dar es Salaam', 'Arusha', 'Dodoma', 'Mwanza', 'Mbeya', 'Morogoro', 
+      'Tanga', 'Kilimanjaro', 'Pwani', 'Mtwara', 'Kagera', 'Singida', 
+      'Tabora', 'Kigoma', 'Shinyanga', 'Manyara', 'Ruvuma', 'Lindi', 
+      'Geita', 'Njombe', 'Katavi', 'Songwe', 'Rukwa', 'Iringa', 'Mara', 'Simiyu'
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Mkoa Unaotoka', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          DropdownButton<String>(
+            value: regions.contains(currentRegion) ? currentRegion : null,
+            hint: const Text('Weka Mkoa Wako', style: TextStyle(fontSize: 13, color: AppColors.accent)),
+            isDense: true,
+            underline: const SizedBox(),
+            icon: const Icon(Icons.arrow_drop_down, size: 20),
+            items: regions.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))).toList(),
+            onChanged: (val) async {
+              if (val != null) {
+                final success = await ref.read(authControllerProvider.notifier).updateRegion(val);
+                if (context.mounted) {
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mkoa umesasishwa kikamilifu!')));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kuna tatizo kusasisha mkoa.')));
+                  }
+                }
+              }
+            },
+          ),
         ],
       ),
     );

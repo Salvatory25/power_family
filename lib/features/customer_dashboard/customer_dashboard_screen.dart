@@ -273,7 +273,7 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
                   
                   // Personalized Greeting
                   Text(
-                    '${_getGreeting(context)}, ${user?.fullName?.split(" ").first ?? "Customer"}',
+                    _getGreeting(context),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -385,6 +385,25 @@ class _CustomerDashboardScreenState extends ConsumerState<CustomerDashboardScree
                                 icon: const Icon(Icons.savings_outlined, size: 18),
                                 label: const Text('My Kikoba', style: TextStyle(fontWeight: FontWeight.bold)),
                                 onPressed: () => context.push('/my-kikoba'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent.withOpacity(0.1),
+                                  foregroundColor: AppColors.accent,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                icon: const Icon(Icons.app_registration, size: 18),
+                                label: const Text('Apply for Kikoba', style: TextStyle(fontWeight: FontWeight.bold)),
+                                onPressed: () => context.push('/customer/kikoba/apply'),
                               ),
                             ),
                           ],

@@ -15,6 +15,8 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
+  final _codeController = TextEditingController();
+  final _newPasswordController = TextEditingController();
   bool _submitted = false;
   bool _isLoading = false;
 
@@ -28,11 +30,49 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     }
 
     setState(() => _isLoading = true);
-    await ref.read(authControllerProvider.notifier).sendPasswordReset(email);
-    setState(() {
-      _isLoading = false;
-      _submitted = true;
-    });
+    try {
+      await ref.read(authControllerProvider.notifier).sendPasswordReset(email);
+      setState(() {
+        _submitted = true;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleVerifyOTPAndReset() async {
+    final email = _emailController.text.trim();
+    final code = _codeController.text.trim();
+    final newPass = _newPasswordController.text.trim();
+
+    if (code.isEmpty || newPass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter the code and new password.')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final success = await ref.read(authControllerProvider.notifier).verifyOTPAndResetPassword(
+        email: email,
+        token: code,
+        newPassword: newPass,
+      );
+      
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated successfully!')));
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -99,38 +139,60 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 padding: const EdgeInsets.all(28.0),
                 child: _submitted
                     ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.statusAvailable.withOpacity(0.12),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.check_circle_outline_rounded, size: 48, color: AppColors.statusAvailable),
-                          ),
-                          const SizedBox(height: 20),
                           const Text(
-                            'Reset Link Sent!',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primary),
+                            'Enter Reset Code',
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.primary),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 6),
                           Text(
-                            'We have sent a password reset link to ${_emailController.text}. Please check your inbox.',
-                            textAlign: TextAlign.center,
+                            'We sent a 6-digit code to ${_emailController.text}. Enter it below with your new password.',
                             style: TextStyle(fontSize: 14, color: AppColors.textSecondary.withOpacity(0.9), height: 1.4),
                           ),
+                          const SizedBox(height: 28),
+                          
+                          // OTP Code Field
+                          TextFormField(
+                            controller: _codeController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 4.0),
+                            textAlign: TextAlign.center,
+                            decoration: InputDecoration(
+                              labelText: '6-Digit Code',
+                              filled: true,
+                              fillColor: AppColors.background,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // New Password Field
+                          TextFormField(
+                            controller: _newPasswordController,
+                            obscureText: true,
+                            decoration: InputDecoration(
+                              labelText: 'New Password',
+                              filled: true,
+                              fillColor: AppColors.background,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            ),
+                          ),
+                          
                           const SizedBox(height: 28),
                           SizedBox(
                             width: double.infinity,
                             height: 54,
                             child: ElevatedButton(
-                              onPressed: () => context.pop(),
+                              onPressed: _isLoading ? null : _handleVerifyOTPAndReset,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.accent,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
                               ),
-                              child: const Text('Back to Login', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                              child: _isLoading 
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white))
+                                : const Text('Reset Password & Login', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                             ),
                           ),
                         ],

@@ -111,7 +111,9 @@ class _FinanceHubScreenState extends ConsumerState<FinanceHubScreen> with Single
     final customers = ref.watch(customersProvider).value ?? [];
     final properties = ref.watch(propertiesProvider).value ?? [];
 
-    final totalRevenue = sales.fold<double>(0, (sum, s) => sum + s.amount);
+    final totalRevenue = properties
+        .where((p) => p.status == AppConstants.propertySold)
+        .fold<double>(0, (sum, p) => sum + p.price);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),

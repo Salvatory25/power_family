@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ActivityModel {
   final String id;
@@ -33,7 +32,7 @@ class ActivityModel {
       entityId: map['entityId'] ?? '',
       description: map['description'] ?? '',
       branchId: map['branchId'] ?? '',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -46,7 +45,7 @@ class ActivityModel {
       'entityId': entityId,
       'description': description,
       'branchId': branchId,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

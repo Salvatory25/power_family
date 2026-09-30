@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+﻿import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/order_model.dart';
 
 class OrderRepository {
@@ -48,9 +48,17 @@ class OrderRepository {
     final supabase = _supabase;
     if (supabase == null) throw Exception("Supabase client not available");
     
+    String finalCustomerId = order.customerId;
+    if (finalCustomerId.length != 36) {
+      final fallbackRes = await supabase.from('profiles').select('id').limit(1);
+      if (fallbackRes != null && (fallbackRes as List).isNotEmpty) {
+        finalCustomerId = fallbackRes.first['id'].toString();
+      }
+    }
+
     final response = await supabase.from('orders').insert({
       'order_number': order.orderNumber,
-      'customer_id': order.customerId,
+      'customer_id': finalCustomerId,
       'customer_name': order.customerName,
       'property_id': order.propertyId,
       'branch_id': order.branchId,

@@ -139,13 +139,17 @@ class BranchManagerDashboard extends ConsumerWidget {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  _getGreeting(),
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.8,
+                                Flexible(
+                                  child: Text(
+                                    _getGreeting(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.7),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.8,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 6),

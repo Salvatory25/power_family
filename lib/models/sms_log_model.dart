@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SMSLogModel {
   final String id;
@@ -33,7 +32,7 @@ class SMSLogModel {
       branchId: map['branchId'] ?? '',
       status: map['status'] ?? 'pending',
       providerMessageId: map['providerMessageId'],
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -46,7 +45,7 @@ class SMSLogModel {
       'branchId': branchId,
       'status': status,
       'providerMessageId': providerMessageId,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

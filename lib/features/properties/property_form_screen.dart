@@ -271,28 +271,42 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       updatedAt: DateTime.now(),
     );
 
-    if (widget.propertyToEdit != null) {
-      await repo.updateProperty(newProperty);
-    } else {
-      await repo.createProperty(newProperty);
-    }
+    try {
+      if (widget.propertyToEdit != null) {
+        await repo.updateProperty(newProperty);
+      } else {
+        await repo.createProperty(newProperty);
+      }
 
-    // Invalidate the global provider so dashboard stats refresh
-    ref.invalidate(propertiesProvider);
+      // Invalidate the global provider so dashboard stats refresh
+      ref.invalidate(propertiesProvider);
 
-    setState(() => _isUploading = false);
+      setState(() => _isUploading = false);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.propertyToEdit != null
-                ? 'Property updated successfully!'
-                : 'Property created successfully!',
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.propertyToEdit != null
+                  ? 'Property updated successfully!'
+                  : 'Property created successfully!',
+            ),
+            backgroundColor: Colors.green,
           ),
-        ),
-      );
-      context.pop();
+        );
+        context.pop();
+      }
+    } catch (e) {
+      setState(() => _isUploading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save property: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 

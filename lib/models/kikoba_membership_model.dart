@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class KikobaMembershipModel {
   final String id;
@@ -35,8 +34,8 @@ class KikobaMembershipModel {
       branchId: map['branchId'] ?? '',
       totalContributed: (map['totalContributed'] as num?)?.toDouble() ?? 0.0,
       status: map['status'] ?? 'PENDING',
-      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(map['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -49,8 +48,8 @@ class KikobaMembershipModel {
       'branchId': branchId,
       'totalContributed': totalContributed,
       'status': status,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 

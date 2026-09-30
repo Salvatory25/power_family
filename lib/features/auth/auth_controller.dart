@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_model.dart';
 import '../../repositories/auth_repository.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/email_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository());
 
@@ -44,6 +45,7 @@ class AuthController extends StateNotifier<AsyncValue<UserModel?>> {
     required String password,
     String? requestedRole,
     String? branchId,
+    String? region,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -54,7 +56,12 @@ class AuthController extends StateNotifier<AsyncValue<UserModel?>> {
         password: password,
         requestedRole: requestedRole,
         branchId: branchId,
+        region: region,
       );
+      
+      // Dispatch Welcome Email
+      EmailService.sendWelcomeEmail(email, fullName);
+
       state = AsyncValue.data(user);
       return true;
     } catch (e, st) {
@@ -64,7 +71,28 @@ class AuthController extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   Future<void> sendPasswordReset(String email) async {
+    // This tells Supabase to send the 6-digit OTP code to the user's email
     await _repository.sendPasswordResetEmail(email);
+  }
+
+  Future<bool> verifyOTPAndResetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await _repository.verifyOTPAndResetPassword(
+        email: email,
+        token: token,
+        newPassword: newPassword,
+      );
+      // Once verified and updated, reload the user session
+      final user = await _repository.getCurrentUserSession();
+      state = AsyncValue.data(user);
+      return true;
+    } catch (e) {
+      throw e;
+    }
   }
 
   Future<void> logout() async {
@@ -85,6 +113,17 @@ class AuthController extends StateNotifier<AsyncValue<UserModel?>> {
     } catch (e, st) {
       print('Error updating profile picture: $e');
       throw e;
+    }
+  }
+
+  Future<bool> updateRegion(String region) async {
+    try {
+      final user = await _repository.updateRegion(region);
+      state = AsyncValue.data(user);
+      return true;
+    } catch (e, st) {
+      print('Error updating region: $e');
+      return false;
     }
   }
 }

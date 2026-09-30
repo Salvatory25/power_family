@@ -86,6 +86,9 @@ class LeadRepository {
         final inserted = await supabase.from('leads').insert({
           'lead_id': leadCode,
           'branch_id': branchUuid,
+          'converted_customer_id': lead.customerId,
+          'interested_plot_type': lead.propertyId,
+          'assigned_agent_id': lead.assignedAgentId,
           'full_name': 'Prospect Lead',
           'phone': '+255 700 000 000',
           'source': lead.source.isNotEmpty ? lead.source : 'Direct Call',
@@ -112,7 +115,7 @@ class LeadRepository {
         await supabase.from('audit_logs').insert({
           'actor_id': currentUser?.id ?? created.createdBy,
           'actor_name': currentUser != null ? 'Staff' : 'System',
-          'action_type': 'LEAD_CREATED',
+          'action': 'LEAD_CREATED',
           'target_entity_type': 'Lead',
           'target_entity_id': created.id,
           'description': 'Added new lead from \${created.source}',
@@ -140,7 +143,7 @@ class LeadRepository {
         await supabase.from('audit_logs').insert({
           'actor_id': currentUser?.id ?? 'system',
           'actor_name': currentUser != null ? 'Staff' : 'System',
-          'action_type': 'LEAD_STATUS_UPDATED',
+          'action': 'LEAD_STATUS_UPDATED',
           'target_entity_type': 'Lead',
           'target_entity_id': leadId,
           'description': 'Lead status updated to \$newStatus',
